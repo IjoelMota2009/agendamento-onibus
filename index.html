@@ -8,58 +8,39 @@
         :root { --primary: #0056b3; --success: #28a745; --danger: #dc3545; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
-
         .header { background: #1a1a1a; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .card h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: var(--primary); }
-
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-
         .search-box { margin-bottom: 15px; }
         .search-box input { border: 2px solid var(--primary); background: #f0f7ff; font-weight: bold; }
-
         .check-box-group { display: flex; gap: 10px; grid-column: span 2; }
         .check-box { flex: 1; display: flex; align-items: center; gap: 8px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
-
         .btn { padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
         .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
         .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
         .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
         .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
-
         .vagas-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .vagas-box { padding: 15px; border-radius: 8px; text-align: center; color: white; }
         .manha { background: #0284c7; }
         .tarde { background: #d97706; }
         .vagas-numero { font-size: 22px; font-weight: bold; display: block; }
-
         #listaConfirmacao { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; }
-
-        .item-confirmar {
-            display: flex;
-            align-items: center;
-            padding: 10px 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            background: #fff;
-        }
-
+        .item-confirmar { display: flex; align-items: center; padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; background: #fff; }
         .nome-paciente { flex: 1; font-weight: 500; font-size: 15px; text-transform: uppercase; }
         .hora-paciente { width: 70px; text-align: center; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 0 10px; }
         .check-confirmar { width: 22px; height: 22px; cursor: pointer; margin-right: 10px; }
-
         .tag { font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
         .tag-londrina { color: #dc2626; border: 1px solid #dc2626; }
         .tag-acomp { color: #059669; border: 1px solid #059669; }
-
         .status-box { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
         .status-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
         .status-erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-
+        .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .loading { opacity: 0.7; pointer-events: none; }
         @media print {
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
@@ -74,7 +55,6 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header no-print">
         <h1>SISTEMA DE TRANSPORTE - SAÚDE</h1>
@@ -86,7 +66,7 @@
             <div class="form-row">
                 <div style="grid-column: span 2;">
                     <label for="data">Data da Viagem:</label>
-                    <input type="date" id="data" onchange="atualizarPainel()">
+                    <input type="date" id="data">
                 </div>
                 <div style="grid-column: span 2;">
                     <label for="paciente">Nome do Paciente:</label>
@@ -119,7 +99,7 @@
                     </div>
                 </div>
             </div>
-            <button class="btn btn-save" onclick="salvar()">SALVAR AGENDAMENTO</button>
+            <button class="btn btn-save" id="btnSalvar">SALVAR AGENDAMENTO</button>
             <div id="statusMensagem" class="status-box"></div>
         </div>
 
@@ -138,14 +118,14 @@
                 </div>
             </div>
 
-            <button class="btn btn-view" onclick="abrirListaConfirmacao()">VER LISTA E PESQUISAR</button>
+            <button class="btn btn-view" id="btnVerLista">VER LISTA E PESQUISAR</button>
 
             <div id="listaConfirmacao">
                 <div class="search-box">
-                    <input type="text" id="inputBusca" onkeyup="filtrarNomes()" placeholder="🔍 Pesquisar nome na lista...">
+                    <input type="text" id="inputBusca" placeholder="🔍 Pesquisar nome na lista...">
                 </div>
                 <div id="corpoLista"></div>
-                <button class="btn btn-print" onclick="gerarRelatorio()">GERAR PLANILHA PARA IMPRESSÃO</button>
+                <button class="btn btn-print" id="btnGerarRelatorio">GERAR PLANILHA PARA IMPRESSÃO</button>
             </div>
         </div>
     </div>
@@ -159,24 +139,21 @@
         getFirestore,
         collection,
         addDoc,
-        getDocs,
         query,
         where,
         updateDoc,
         doc,
         Timestamp,
-        orderBy
+        onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // COLE A CONFIGURAÇÃO DO SEU PROJETO FIREBASE AQUI.
-    // Pegue isso no Firebase Console > Configurações do projeto > Seus apps > SDK setup and config.
     const firebaseConfig = {
-    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
-    authDomain: "agendamento-a11d3.firebaseapp.com",
-    projectId: "agendamento-a11d3",
-    storageBucket: "agendamento-a11d3.firebasestorage.app",
-    messagingSenderId: "31776903316",
-    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+        apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+        authDomain: "agendamento-a11d3.firebaseapp.com",
+        projectId: "agendamento-a11d3",
+        storageBucket: "agendamento-a11d3.firebasestorage.app",
+        messagingSenderId: "31776903316",
+        appId: "1:31776903316:web:73b72839fe54ce0d04a481"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -187,82 +164,234 @@
     const LIMITE_TARDE = 28;
 
     let db = [];
+    let dataAtual = "";
+    let unsubscribeAtual = null;
+    let listaAberta = false;
+    let salvando = false;
 
-    function mostrarStatus(texto, tipo = 'ok') {
-        const box = document.getElementById('statusMensagem');
-        box.textContent = texto;
-        box.className = `status-box ${tipo === 'erro' ? 'status-erro' : 'status-ok'}`;
-        box.style.display = 'block';
-        setTimeout(() => {
-            box.style.display = 'none';
-        }, 4000);
+    const el = {
+        data: document.getElementById('data'),
+        paciente: document.getElementById('paciente'),
+        telefone: document.getElementById('telefone'),
+        lugar: document.getElementById('lugar'),
+        horario: document.getElementById('horario'),
+        obs: document.getElementById('obs'),
+        acompanhante: document.getElementById('acompanhante'),
+        londrina: document.getElementById('londrina'),
+        btnSalvar: document.getElementById('btnSalvar'),
+        btnVerLista: document.getElementById('btnVerLista'),
+        btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+        inputBusca: document.getElementById('inputBusca'),
+        statusMensagem: document.getElementById('statusMensagem'),
+        statusData: document.getElementById('statusData'),
+        vManha: document.getElementById('vManha'),
+        vTarde: document.getElementById('vTarde'),
+        listaConfirmacao: document.getElementById('listaConfirmacao'),
+        corpoLista: document.getElementById('corpoLista'),
+        relatorioArea: document.getElementById('relatorioArea')
+    };
+
+    function mostrarStatus(texto, tipo = 'ok', tempo = 4000) {
+        el.statusMensagem.textContent = texto;
+        el.statusMensagem.className = `status-box ${tipo === 'erro' ? 'status-erro' : tipo === 'info' ? 'status-info' : 'status-ok'}`;
+        el.statusMensagem.style.display = 'block';
+        if (tempo > 0) {
+            setTimeout(() => {
+                if (el.statusMensagem.textContent === texto) {
+                    el.statusMensagem.style.display = 'none';
+                }
+            }, tempo);
+        }
     }
 
     function limparCampos() {
-        document.getElementById('paciente').value = "";
-        document.getElementById('telefone').value = "";
-        document.getElementById('lugar').value = "";
-        document.getElementById('obs').value = "";
-        document.getElementById('horario').value = "";
-        document.getElementById('acompanhante').checked = false;
-        document.getElementById('londrina').checked = false;
+        el.paciente.value = '';
+        el.telefone.value = '';
+        el.lugar.value = '';
+        el.horario.value = '';
+        el.obs.value = '';
+        el.acompanhante.checked = false;
+        el.londrina.checked = false;
     }
 
     function pesoRegistro(item) {
-        return item.acompanhante === "SIM" ? 2 : 1;
+        return item.acompanhante === 'SIM' ? 2 : 1;
     }
 
     function isTurnoManha(horario) {
         return horario <= CORTE_ONIBUS;
     }
 
-    async function buscarAgendamentosPorData(data) {
+    function ordenar(lista) {
+        return [...lista].sort((a, b) => {
+            const turnoA = isTurnoManha(a.horario) ? 0 : 1;
+            const turnoB = isTurnoManha(b.horario) ? 0 : 1;
+            if (turnoA !== turnoB) return turnoA - turnoB;
+            if ((a.horario || '') !== (b.horario || '')) return (a.horario || '').localeCompare(b.horario || '');
+            return (a.paciente || '').localeCompare(b.paciente || '');
+        });
+    }
+
+    function renderizarPainel() {
+        if (!dataAtual) {
+            el.statusData.innerText = 'Selecione uma data';
+            el.vManha.innerText = `0 / ${LIMITE_MANHA}`;
+            el.vTarde.innerText = `0 / ${LIMITE_TARDE}`;
+            return;
+        }
+
+        el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
+
+        const ativos = db.filter(i => i.status === 'ativo');
+        const m = ativos.filter(i => isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+        const t = ativos.filter(i => !isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+
+        el.vManha.innerText = `${m} / ${LIMITE_MANHA}`;
+        el.vTarde.innerText = `${t} / ${LIMITE_TARDE}`;
+    }
+
+    function renderizarLista() {
+        if (!listaAberta) return;
+
+        const busca = el.inputBusca.value.trim().toUpperCase();
+        const ativos = ordenar(db.filter(i => i.status === 'ativo'));
+        const filtrados = ativos.filter(i => !busca || (i.paciente || '').includes(busca));
+
+        el.corpoLista.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            el.corpoLista.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente encontrado.</div>';
+            return;
+        }
+
+        for (const i of filtrados) {
+            const div = document.createElement('div');
+            div.className = 'item-confirmar';
+            div.dataset.id = i.id;
+            div.dataset.nome = i.paciente || '';
+
+            const nome = document.createElement('div');
+            nome.className = 'nome-paciente';
+            nome.innerHTML = `${i.paciente || ''} ${i.isLondrina ? '<span class="tag tag-londrina">LONDRINA</span>' : ''} ${i.acompanhante === 'SIM' ? '<span class="tag tag-acomp">+ACOMP</span>' : ''}`;
+
+            const hora = document.createElement('div');
+            hora.className = 'hora-paciente';
+            hora.textContent = i.horario || '';
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.className = 'check-confirmar';
+            check.checked = !!i.confirmado;
+            check.addEventListener('change', () => confirmarVaga(i.id, check.checked));
+
+            const btnApagar = document.createElement('button');
+            btnApagar.className = 'btn btn-del';
+            btnApagar.textContent = 'Apagar';
+            btnApagar.addEventListener('click', () => excluir(i.id));
+
+            div.appendChild(nome);
+            div.appendChild(hora);
+            div.appendChild(check);
+            div.appendChild(btnApagar);
+            el.corpoLista.appendChild(div);
+        }
+    }
+
+    function atualizarTela() {
+        renderizarPainel();
+        renderizarLista();
+    }
+
+    function iniciarEscutaData(data) {
+        dataAtual = data;
+        db = [];
+        atualizarTela();
+
+        if (!data) return;
+
+        if (unsubscribeAtual) {
+            unsubscribeAtual();
+            unsubscribeAtual = null;
+        }
+
+        mostrarStatus('Carregando dados da data selecionada...', 'info', 1500);
+
         const q = query(
             collection(firestore, 'agendamentos'),
-            where('data', '==', data),
-            where('status', '==', 'ativo')
+            where('data', '==', data)
         );
 
-        const snap = await getDocs(q);
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        unsubscribeAtual = onSnapshot(q, (snapshot) => {
+            db = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            atualizarTela();
+        }, (erro) => {
+            console.error(erro);
+            mostrarStatus('Erro ao carregar dados: ' + erro.message, 'erro', 6000);
+        });
     }
 
     async function salvar() {
+        if (salvando) return;
+
+        const data = el.data.value;
+        const paciente = el.paciente.value.trim().toUpperCase();
+        const temAcomp = el.acompanhante.checked;
+        const telefone = el.telefone.value.trim();
+        const lugar = el.lugar.value.trim().toUpperCase();
+        const horario = el.horario.value;
+        const obs = el.obs.value.trim();
+        const isLondrina = el.londrina.checked;
+
+        if (!data || !paciente || !horario) {
+            alert('Preencha Nome, Data e Horário!');
+            return;
+        }
+
+        if (dataAtual !== data) {
+            iniciarEscutaData(data);
+        }
+
+        const ativos = db.filter(i => i.status === 'ativo');
+        const repetido = ativos.find(i => i.paciente === paciente);
+        if (repetido) {
+            alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO!');
+            return;
+        }
+
+        const peso = temAcomp ? 2 : 1;
+        const turnoAtual = isTurnoManha(horario) ? 'manha' : 'tarde';
+        const ocupados = ativos
+            .filter(i => turnoAtual === 'manha' ? isTurnoManha(i.horario) : !isTurnoManha(i.horario))
+            .reduce((soma, item) => soma + pesoRegistro(item), 0);
+
+        const limite = turnoAtual === 'manha' ? LIMITE_MANHA : LIMITE_TARDE;
+        if ((ocupados + peso) > limite) {
+            alert('ÔNIBUS LOTADO!');
+            return;
+        }
+
+        salvando = true;
+        el.btnSalvar.classList.add('loading');
+        el.btnSalvar.textContent = 'SALVANDO...';
+
+        const temporario = {
+            id: 'tmp_' + Date.now(),
+            data,
+            paciente,
+            acompanhante: temAcomp ? 'SIM' : 'NÃO',
+            telefone,
+            lugar,
+            horario,
+            obs,
+            isLondrina,
+            confirmado: false,
+            status: 'ativo'
+        };
+
+        db.push(temporario);
+        atualizarTela();
+
         try {
-            const data = document.getElementById('data').value;
-            const paciente = document.getElementById('paciente').value.trim().toUpperCase();
-            const temAcomp = document.getElementById('acompanhante').checked;
-            const telefone = document.getElementById('telefone').value.trim();
-            const lugar = document.getElementById('lugar').value.trim().toUpperCase();
-            const horario = document.getElementById('horario').value;
-            const obs = document.getElementById('obs').value.trim();
-            const isLondrina = document.getElementById('londrina').checked;
-
-            if (!data || !paciente || !horario) {
-                alert('Preencha Nome, Data e Horário!');
-                return;
-            }
-
-            const listaDia = await buscarAgendamentosPorData(data);
-
-            const repetido = listaDia.find(i => i.paciente === paciente);
-            if (repetido) {
-                alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO!');
-                return;
-            }
-
-            const peso = temAcomp ? 2 : 1;
-            const turnoAtual = isTurnoManha(horario) ? 'manha' : 'tarde';
-            const ocupados = listaDia
-                .filter(i => turnoAtual === 'manha' ? isTurnoManha(i.horario) : !isTurnoManha(i.horario))
-                .reduce((soma, item) => soma + pesoRegistro(item), 0);
-
-            const limite = turnoAtual === 'manha' ? LIMITE_MANHA : LIMITE_TARDE;
-            if ((ocupados + peso) > limite) {
-                alert('ÔNIBUS LOTADO!');
-                return;
-            }
-
             await addDoc(collection(firestore, 'agendamentos'), {
                 data,
                 paciente,
@@ -280,200 +409,151 @@
             });
 
             limparCampos();
-            await atualizarPainel();
             mostrarStatus('Agendamento salvo com sucesso.');
         } catch (erro) {
             console.error(erro);
-            mostrarStatus('Erro ao salvar no Firebase. Veja o console.', 'erro');
+            db = db.filter(i => i.id !== temporario.id);
+            atualizarTela();
+            alert('Erro ao salvar: ' + erro.message);
+            mostrarStatus('Erro ao salvar: ' + erro.message, 'erro', 6000);
+        } finally {
+            salvando = false;
+            el.btnSalvar.classList.remove('loading');
+            el.btnSalvar.textContent = 'SALVAR AGENDAMENTO';
         }
     }
 
-    async function atualizarPainel() {
-        try {
-            const d = document.getElementById('data').value;
-            if (!d) return;
-
-            document.getElementById('statusData').innerText = 'DATA: ' + d.split('-').reverse().join('/');
-
-            db = await buscarAgendamentosPorData(d);
-
-            const m = db
-                .filter(i => isTurnoManha(i.horario))
-                .reduce((soma, item) => soma + pesoRegistro(item), 0);
-
-            const t = db
-                .filter(i => !isTurnoManha(i.horario))
-                .reduce((soma, item) => soma + pesoRegistro(item), 0);
-
-            document.getElementById('vManha').innerText = `${m} / ${LIMITE_MANHA}`;
-            document.getElementById('vTarde').innerText = `${t} / ${LIMITE_TARDE}`;
-
-            if (document.getElementById('listaConfirmacao').style.display === 'block') {
-                await abrirListaConfirmacao();
-            }
-        } catch (erro) {
-            console.error(erro);
-            mostrarStatus('Erro ao carregar dados do Firebase.', 'erro');
+    function abrirListaConfirmacao() {
+        if (!el.data.value) {
+            alert('Escolha a data no calendário!');
+            return;
         }
-    }
-
-    async function abrirListaConfirmacao() {
-        try {
-            const d = document.getElementById('data').value;
-            if (!d) {
-                alert('Escolha a data no calendário!');
-                return;
-            }
-
-            db = await buscarAgendamentosPorData(d);
-            db.sort((a, b) => a.horario.localeCompare(b.horario));
-
-            document.getElementById('listaConfirmacao').style.display = 'block';
-            const divLista = document.getElementById('corpoLista');
-            divLista.innerHTML = '';
-
-            db.forEach(i => {
-                divLista.innerHTML += `
-                    <div class="item-confirmar" data-nome="${i.paciente}">
-                        <div class="nome-paciente">
-                            ${i.paciente}
-                            ${i.isLondrina ? '<span class="tag tag-londrina">LONDRINA</span>' : ''}
-                            ${i.acompanhante === "SIM" ? '<span class="tag tag-acomp">+ACOMP</span>' : ''}
-                        </div>
-                        <div class="hora-paciente">${i.horario}</div>
-                        <input type="checkbox" class="check-confirmar" ${i.confirmado ? 'checked' : ''} onchange="confirmarVaga('${i.id}', this.checked)">
-                        <button class="btn btn-del" onclick="excluir('${i.id}')">Apagar</button>
-                    </div>`;
-            });
-        } catch (erro) {
-            console.error(erro);
-            mostrarStatus('Erro ao abrir a lista.', 'erro');
-        }
+        listaAberta = true;
+        el.listaConfirmacao.style.display = 'block';
+        renderizarLista();
     }
 
     function filtrarNomes() {
-        const busca = document.getElementById('inputBusca').value.toUpperCase();
-        const itens = document.querySelectorAll('.item-confirmar');
-        itens.forEach(item => {
-            const nome = item.getAttribute('data-nome') || '';
-            item.style.display = nome.indexOf(busca) > -1 ? 'flex' : 'none';
-        });
+        renderizarLista();
     }
 
     async function confirmarVaga(id, valor) {
+        const item = db.find(i => i.id === id);
+        if (item) {
+            item.confirmado = valor;
+            atualizarTela();
+        }
+
         try {
-            await updateDoc(doc(firestore, 'agendamentos', id), {
-                confirmado: valor
-            });
+            await updateDoc(doc(firestore, 'agendamentos', id), { confirmado: valor });
         } catch (erro) {
             console.error(erro);
-            mostrarStatus('Erro ao confirmar paciente.', 'erro');
+            if (item) {
+                item.confirmado = !valor;
+                atualizarTela();
+            }
+            alert('Erro ao confirmar: ' + erro.message);
+            mostrarStatus('Erro ao confirmar paciente.', 'erro', 6000);
         }
     }
 
     async function excluir(id) {
-        try {
-            const motivo = prompt('Motivo da exclusão:');
-            if (motivo === null) return;
+        const motivo = prompt('Motivo da exclusão:');
+        if (motivo === null) return;
 
+        const item = db.find(i => i.id === id);
+        const backup = item ? { ...item } : null;
+
+        if (item) {
+            item.status = 'excluido';
+            item.excluidoEm = new Date().toISOString();
+            item.motivoExclusao = motivo.trim() || 'Sem motivo informado';
+            atualizarTela();
+        }
+
+        try {
             await updateDoc(doc(firestore, 'agendamentos', id), {
                 status: 'excluido',
                 excluidoEm: Timestamp.now(),
                 motivoExclusao: motivo.trim() || 'Sem motivo informado'
             });
-
-            await atualizarPainel();
             mostrarStatus('Paciente marcado como excluído.');
         } catch (erro) {
             console.error(erro);
-            mostrarStatus('Erro ao excluir paciente.', 'erro');
+            if (backup) {
+                const idx = db.findIndex(i => i.id === id);
+                if (idx >= 0) db[idx] = backup;
+                atualizarTela();
+            }
+            alert('Erro ao excluir: ' + erro.message);
+            mostrarStatus('Erro ao excluir paciente.', 'erro', 6000);
         }
-    }
-
-    function ordenar(lista) {
-        return [...lista].sort((a, b) => {
-            const turnoA = isTurnoManha(a.horario) ? 0 : 1;
-            const turnoB = isTurnoManha(b.horario) ? 0 : 1;
-            if (turnoA !== turnoB) return turnoA - turnoB;
-            if (a.isLondrina !== b.isLondrina) return a.isLondrina ? 1 : -1;
-            return a.lugar.localeCompare(b.lugar);
-        });
     }
 
     function tabela(lista) {
         let txt = `<table><thead><tr><th>Hora</th><th>Paciente</th><th>Acomp.</th><th>Telefone</th><th>Destino</th><th>Observações</th></tr></thead><tbody>`;
-        lista.forEach(i => {
+        for (const i of lista) {
             txt += `<tr>
-                <td><b>${i.horario}</b></td>
-                <td>${i.paciente}</td>
-                <td style="text-align:center">${i.acompanhante}</td>
+                <td><b>${i.horario || ''}</b></td>
+                <td>${i.paciente || ''}</td>
+                <td style="text-align:center">${i.acompanhante || ''}</td>
                 <td>${i.telefone || ''}</td>
                 <td>${i.isLondrina ? '[LONDRINA] ' : ''}${i.lugar || ''}</td>
                 <td>${i.obs || ''}</td>
             </tr>`;
-        });
+        }
         return txt + `</tbody></table>`;
     }
 
-    async function gerarRelatorio() {
-        try {
-            const d = document.getElementById('data').value;
-            if (!d) {
-                alert('Escolha a data no calendário!');
-                return;
-            }
-
-            db = await buscarAgendamentosPorData(d);
-            const confirmados = db.filter(i => i.confirmado);
-
-            if (confirmados.length === 0) {
-                alert('Nenhum paciente marcado com OK!');
-                return;
-            }
-
-            const m = ordenar(confirmados.filter(i => isTurnoManha(i.horario)));
-            const t = ordenar(confirmados.filter(i => !isTurnoManha(i.horario)));
-
-            let h = '';
-            const dataBr = d.split('-').reverse().join('/');
-
-            if (m.length > 0) {
-                const contaM = m.reduce((soma, item) => soma + pesoRegistro(item), 0);
-                h += `<div class="onibus-section">
-                        <div class="header-print">
-                            <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 5H</h2>
-                            <h2 style="margin:0">OCUPAÇÃO: ${contaM}/${LIMITE_MANHA}</h2>
-                        </div>
-                        ${tabela(m)}
-                      </div>`;
-            }
-            if (t.length > 0) {
-                const contaT = t.reduce((soma, item) => soma + pesoRegistro(item), 0);
-                h += `<div class="onibus-section">
-                        <div class="header-print">
-                            <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 10H</h2>
-                            <h2 style="margin:0">OCUPAÇÃO: ${contaT}/${LIMITE_TARDE}</h2>
-                        </div>
-                        ${tabela(t)}
-                      </div>`;
-            }
-
-            document.getElementById('relatorioArea').innerHTML = h;
-            setTimeout(() => window.print(), 500);
-        } catch (erro) {
-            console.error(erro);
-            mostrarStatus('Erro ao gerar relatório.', 'erro');
+    function gerarRelatorio() {
+        if (!dataAtual) {
+            alert('Escolha a data no calendário!');
+            return;
         }
+
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        if (confirmados.length === 0) {
+            alert('Nenhum paciente marcado com OK!');
+            return;
+        }
+
+        const m = ordenar(confirmados.filter(i => isTurnoManha(i.horario)));
+        const t = ordenar(confirmados.filter(i => !isTurnoManha(i.horario)));
+        const dataBr = dataAtual.split('-').reverse().join('/');
+        let h = '';
+
+        if (m.length > 0) {
+            const contaM = m.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 5H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaM}/${LIMITE_MANHA}</h2>
+                    </div>
+                    ${tabela(m)}
+                  </div>`;
+        }
+        if (t.length > 0) {
+            const contaT = t.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 10H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaT}/${LIMITE_TARDE}</h2>
+                    </div>
+                    ${tabela(t)}
+                  </div>`;
+        }
+
+        el.relatorioArea.innerHTML = h;
+        setTimeout(() => window.print(), 300);
     }
 
-    window.salvar = salvar;
-    window.atualizarPainel = atualizarPainel;
-    window.abrirListaConfirmacao = abrirListaConfirmacao;
-    window.filtrarNomes = filtrarNomes;
-    window.confirmarVaga = confirmarVaga;
-    window.excluir = excluir;
-    window.gerarRelatorio = gerarRelatorio;
-</script>
+    el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
+    el.btnSalvar.addEventListener('click', salvar);
+    el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
+    el.inputBusca.addEventListener('input', filtrarNomes);
+    el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
 
+    renderizarPainel();
+</script>
 </body>
 </html>
