@@ -109,11 +109,11 @@
 
             <div class="vagas-container">
                 <div class="vagas-box manha">
-                    <span>ÔNIBUS 5H (consulta até 11:30)</span>
+                    <span>ÔNIBUS 5H CONFIRMADOS (consulta até 11:30)</span>
                     <span class="vagas-numero" id="vManha">0 / 32</span>
                 </div>
                 <div class="vagas-box tarde">
-                    <span>ÔNIBUS 10H (consulta após 11:30)</span>
+                    <span>ÔNIBUS 10H CONFIRMADOS (consulta após 11:30)</span>
                     <span class="vagas-numero" id="vTarde">0 / 28</span>
                 </div>
             </div>
@@ -222,11 +222,24 @@
         return horario <= CORTE_ONIBUS;
     }
 
+    function normalizarLugar(lugar) {
+        return (lugar || '').trim().toUpperCase();
+    }
+
     function ordenar(lista) {
         return [...lista].sort((a, b) => {
             const turnoA = isTurnoManha(a.horario) ? 0 : 1;
             const turnoB = isTurnoManha(b.horario) ? 0 : 1;
             if (turnoA !== turnoB) return turnoA - turnoB;
+
+            const londrinaA = a.isLondrina ? 1 : 0;
+            const londrinaB = b.isLondrina ? 1 : 0;
+            if (londrinaA !== londrinaB) return londrinaA - londrinaB;
+
+            const lugarA = normalizarLugar(a.lugar);
+            const lugarB = normalizarLugar(b.lugar);
+            if (lugarA !== lugarB) return lugarA.localeCompare(lugarB);
+
             if ((a.horario || '') !== (b.horario || '')) return (a.horario || '').localeCompare(b.horario || '');
             return (a.paciente || '').localeCompare(b.paciente || '');
         });
@@ -242,9 +255,9 @@
 
         el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
 
-        const ativos = db.filter(i => i.status === 'ativo');
-        const m = ativos.filter(i => isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
-        const t = ativos.filter(i => !isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        const m = confirmados.filter(i => isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+        const t = confirmados.filter(i => !isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
 
         el.vManha.innerText = `${m} / ${LIMITE_MANHA}`;
         el.vTarde.innerText = `${t} / ${LIMITE_TARDE}`;
@@ -358,18 +371,6 @@
             return;
         }
 
-        const peso = temAcomp ? 2 : 1;
-        const turnoAtual = isTurnoManha(horario) ? 'manha' : 'tarde';
-        const ocupados = ativos
-            .filter(i => turnoAtual === 'manha' ? isTurnoManha(i.horario) : !isTurnoManha(i.horario))
-            .reduce((soma, item) => soma + pesoRegistro(item), 0);
-
-        const limite = turnoAtual === 'manha' ? LIMITE_MANHA : LIMITE_TARDE;
-        if ((ocupados + peso) > limite) {
-            alert('ÔNIBUS LOTADO!');
-            return;
-        }
-
         salvando = true;
         el.btnSalvar.classList.add('loading');
         el.btnSalvar.textContent = 'SALVANDO...';
@@ -438,20 +439,40 @@
     }
 
     async function confirmarVaga(id, valor) {
-        const item = db.find(i => i.id === id);
-        if (item) {
-            item.confirmado = valor;
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde alguns segundos para confirmar. O cadastro ainda está sincronizando.');
             atualizarTela();
+            return;
         }
+
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+
+        if (valor) {
+            const confirmadosMesmoTurno = db
+                .filter(i => i.status === 'ativo' && i.confirmado && i.id !== id)
+                .filter(i => isTurnoManha(i.horario) === isTurnoManha(item.horario))
+                .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+
+            const limiteTurno = isTurnoManha(item.horario) ? LIMITE_MANHA : LIMITE_TARDE;
+            const totalSeConfirmar = confirmadosMesmoTurno + pesoRegistro(item);
+
+            if (totalSeConfirmar > limiteTurno) {
+                alert(`Limite de confirmação atingido neste ônibus. Máximo: ${limiteTurno} lugares.`);
+                atualizarTela();
+                return;
+            }
+        }
+
+        item.confirmado = valor;
+        atualizarTela();
 
         try {
             await updateDoc(doc(firestore, 'agendamentos', id), { confirmado: valor });
         } catch (erro) {
             console.error(erro);
-            if (item) {
-                item.confirmado = !valor;
-                atualizarTela();
-            }
+            item.confirmado = !valor;
+            atualizarTela();
             alert('Erro ao confirmar: ' + erro.message);
             mostrarStatus('Erro ao confirmar paciente.', 'erro', 6000);
         }
