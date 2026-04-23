@@ -251,6 +251,11 @@
             border: 1px solid #7c3aed;
         }
 
+        .tag-carro-baixo {
+            color: #b45309;
+            border: 1px solid #b45309;
+        }
+
         .status-box {
             margin-top: 10px;
             padding: 10px;
@@ -573,6 +578,101 @@
             });
         }
 
+        function pesoVagas(item) {
+            return item.acompanhante === 'SIM' ? 2 : 1;
+        }
+
+        function vagasUsadas(lista) {
+            return lista.reduce((total, item) => total + pesoVagas(item), 0);
+        }
+
+        function precisaCarroBaixo(grupo) {
+            return grupo.some(item => item.carroBaixo === 'SIM');
+        }
+
+        function tentarAdicionarNoCarro(carro, item) {
+            const total = vagasUsadas(carro.pacientes) + pesoVagas(item);
+            if (total > 4) return false;
+            carro.pacientes.push(item);
+            return true;
+        }
+
+        function montarCarros(lista) {
+            const confirmados = ordenar(lista.filter(item => item.status === 'ativo' && item.confirmado));
+            const porDestino = new Map();
+
+            for (const item of confirmados) {
+                const destino = normalizar(item.lugar) || 'SEM DESTINO';
+                if (!porDestino.has(destino)) porDestino.set(destino, []);
+                porDestino.get(destino).push(item);
+            }
+
+            const carros = [];
+            let numeroCarro = 1;
+
+            for (const [, pacientesDestino] of porDestino) {
+                const pacientesOrdenados = [...pacientesDestino].sort((a, b) => {
+                    const baixoA = a.carroBaixo === 'SIM' ? 0 : 1;
+                    const baixoB = b.carroBaixo === 'SIM' ? 0 : 1;
+                    if (baixoA !== baixoB) return baixoA - baixoB;
+                    return (a.horario || '').localeCompare(b.horario || '') || normalizar(a.paciente).localeCompare(normalizar(b.paciente));
+                });
+
+                for (const paciente of pacientesOrdenados) {
+                    let colocado = false;
+
+                    for (const carro of carros) {
+                        const mesmoDestino = carro.pacientes.some(p => normalizar(p.lugar) === normalizar(paciente.lugar));
+                        if (!mesmoDestino) continue;
+                        if (paciente.carroBaixo === 'SIM' && carro.tipoPreferencial !== 'CARRO BAIXO') continue;
+
+                        if (tentarAdicionarNoCarro(carro, paciente)) {
+                            if (paciente.carroBaixo === 'SIM') carro.tipoPreferencial = 'CARRO BAIXO';
+                            colocado = true;
+                            break;
+                        }
+                    }
+
+                    if (!colocado) {
+                        const novoCarro = {
+                            numero: numeroCarro++,
+                            tipoPreferencial: paciente.carroBaixo === 'SIM' ? 'CARRO BAIXO' : '',
+                            pacientes: []
+                        };
+                        tentarAdicionarNoCarro(novoCarro, paciente);
+                        carros.push(novoCarro);
+                    }
+                }
+            }
+
+            const compactados = [];
+
+            for (const carro of carros) {
+                let unido = false;
+
+                for (const destino of compactados) {
+                    const sobra = 4 - vagasUsadas(destino.pacientes);
+                    const pesoCarro = vagasUsadas(carro.pacientes);
+
+                    if (pesoCarro > sobra) continue;
+                    if (precisaCarroBaixo(carro.pacientes) && destino.tipoPreferencial !== 'CARRO BAIXO') continue;
+
+                    destino.pacientes.push(...carro.pacientes);
+                    if (precisaCarroBaixo(carro.pacientes)) destino.tipoPreferencial = 'CARRO BAIXO';
+                    unido = true;
+                    break;
+                }
+
+                if (!unido) compactados.push(carro);
+            }
+
+            return compactados.map((carro, index) => ({
+                ...carro,
+                numero: index + 1,
+                pacientes: ordenar(carro.pacientes)
+            }));
+        }
+
         // =====================================================
         // RENDERIZAÇÃO DA TELA
         // =====================================================
@@ -620,6 +720,9 @@
                         : '<span class="tag tag-cancelado">DESMARCADO</span>'}
                     ${item.acompanhante === 'SIM'
                         ? '<span class="tag tag-acomp">+ACOMP</span>'
+                        : ''}
+                    ${item.carroBaixo === 'SIM'
+                        ? '<span class="tag tag-carro-baixo">CARRO BAIXO</span>'
                         : ''}
                     <br>
                     <small style="font-weight:400;color:#64748b">
@@ -920,10 +1023,9 @@
                             <th>Buscar em</th>
                             <th>Destino</th>
                             <th>Telefone</th>
-                            <th>Acomp.</th>
-                            <th>Vai de carro baixo</th>
+                            <th>Vagas</th>
+                            <th>Carro baixo</th>
                             <th>Obs.</th>
-                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -937,10 +1039,9 @@
                         <td>${item.localBusca || ''}</td>
                         <td>${item.lugar || ''}</td>
                         <td>${item.telefone || ''}</td>
-                        <td style="text-align:center">${item.acompanhante || ''}</td>
-                        <td style="text-align:center">${item.carroBaixo || 'NÃO'}</td>
+                        <td style="text-align:center">${pesoVagas(item)}${item.acompanhante === 'SIM' ? ' (ACOMP.)' : ''}</td>
+                        <td style="text-align:center">${item.carroBaixo === 'SIM' ? 'SIM' : 'NÃO'}</td>
                         <td>${item.obs || ''}</td>
-                        <td>${item.confirmado ? 'CONFIRMADO' : 'DESMARCADO'}</td>
                     </tr>
                 `;
             }
@@ -953,21 +1054,49 @@
             return html;
         }
 
-        function viaRelatorio(lista, via, dataBr, confirmados) {
+        function blocoCarro(carro) {
+            const vagas = vagasUsadas(carro.pacientes);
+            const destinos = [...new Set(carro.pacientes.map(item => normalizar(item.lugar)).filter(Boolean))].join(' / ');
+            const tipo = carro.tipoPreferencial || 'A DEFINIR';
+
+            return `
+                <div style="border:1px solid #000;margin-top:12px;padding:8px;page-break-inside:avoid">
+                    <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px">
+                        <div>
+                            <h3 style="margin:0">CARRO ${carro.numero}</h3>
+                            <div style="font-size:12px;margin-top:3px">
+                                <b>Motorista:</b> ____________________
+                                &nbsp;&nbsp;
+                                <b>Carro:</b> ____________________
+                                &nbsp;&nbsp;
+                                <b>Tipo:</b> ${tipo}
+                            </div>
+                        </div>
+                        <div style="text-align:right;font-size:12px">
+                            <b>Vagas:</b> ${vagas}/4<br>
+                            <b>Destino(s):</b> ${destinos || 'A DEFINIR'}
+                        </div>
+                    </div>
+                    ${tabela(carro.pacientes)}
+                </div>
+            `;
+        }
+
+        function viaRelatorio(carros, via, dataBr, confirmados) {
+            const blocos = carros.map(carro => blocoCarro(carro)).join('');
+
             return `
                 <div class="onibus-section">
                     <div class="header-print">
                         <div>
-                            <h2 style="margin:0">${via} - DATA: ${dataBr} - CARRO</h2>
+                            <h2 style="margin:0">${via} - DATA: ${dataBr} - CARROS</h2>
                             <div style="font-size:13px;margin-top:4px">
-                                <b>Motorista:</b> ____________________
-                                &nbsp;&nbsp;
-                                <b>Carro:</b> ____________________
+                                Separado automaticamente por destino, capacidade de 4 vagas e necessidade de carro baixo.
                             </div>
                         </div>
                         <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${LIMITE_CARRO}</h2>
                     </div>
-                    ${tabela(lista)}
+                    ${blocos}
                 </div>
             `;
         }
@@ -978,19 +1107,20 @@
                 return;
             }
 
-            const ativos = ordenar(db.filter(item => item.status === 'ativo'));
+            const confirmadosLista = db.filter(item => item.status === 'ativo' && item.confirmado);
 
-            if (ativos.length === 0) {
-                alert('Nenhum paciente cadastrado!');
+            if (confirmadosLista.length === 0) {
+                alert('Nenhum paciente confirmado!');
                 return;
             }
 
-            const confirmados = ativos.filter(item => item.confirmado).length;
+            const carros = montarCarros(confirmadosLista);
+            const confirmados = confirmadosLista.length;
             const dataBr = dataAtual.split('-').reverse().join('/');
 
             el.relatorioArea.innerHTML =
-                viaRelatorio(ativos, '1ª VIA', dataBr, confirmados) +
-                viaRelatorio(ativos, '2ª VIA', dataBr, confirmados);
+                viaRelatorio(carros, '1ª VIA', dataBr, confirmados) +
+                viaRelatorio(carros, '2ª VIA', dataBr, confirmados);
 
             setTimeout(() => window.print(), 300);
         }
