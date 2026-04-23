@@ -22,6 +22,8 @@
         .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
         .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
         .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
+        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 11px; margin-left: 5px; }
+        .btn-cancel { background: #6b7280; width: 100%; margin-top: 8px; }
         .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
         .vagas-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .vagas-box { padding: 15px; border-radius: 8px; text-align: center; color: white; }
@@ -100,6 +102,7 @@
                 </div>
             </div>
             <button class="btn btn-save" id="btnSalvar">SALVAR AGENDAMENTO</button>
+            <button class="btn btn-cancel" id="btnCancelarEdicao" style="display:none">CANCELAR EDIÇÃO</button>
             <div id="statusMensagem" class="status-box"></div>
         </div>
 
@@ -168,6 +171,7 @@
     let unsubscribeAtual = null;
     let listaAberta = false;
     let salvando = false;
+    let editandoId = null;
 
     const el = {
         data: document.getElementById('data'),
@@ -179,6 +183,7 @@
         acompanhante: document.getElementById('acompanhante'),
         londrina: document.getElementById('londrina'),
         btnSalvar: document.getElementById('btnSalvar'),
+        btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
         btnVerLista: document.getElementById('btnVerLista'),
         btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
         inputBusca: document.getElementById('inputBusca'),
@@ -212,6 +217,41 @@
         el.obs.value = '';
         el.acompanhante.checked = false;
         el.londrina.checked = false;
+    }
+
+    function atualizarModoEdicao() {
+        const emEdicao = !!editandoId;
+        el.btnSalvar.textContent = emEdicao ? 'SALVAR EDIÇÃO' : 'SALVAR AGENDAMENTO';
+        el.btnCancelarEdicao.style.display = emEdicao ? 'block' : 'none';
+    }
+
+    function iniciarEdicao(id) {
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde a sincronização terminar antes de editar.');
+            return;
+        }
+
+        editandoId = id;
+        el.data.value = item.data || '';
+        el.paciente.value = item.paciente || '';
+        el.telefone.value = item.telefone || '';
+        el.lugar.value = item.lugar || '';
+        el.horario.value = item.horario || '';
+        el.obs.value = item.obs || '';
+        el.acompanhante.checked = item.acompanhante === 'SIM';
+        el.londrina.checked = !!item.isLondrina;
+        atualizarModoEdicao();
+        mostrarStatus('Editando paciente: ' + (item.paciente || ''), 'info', 2500);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicao() {
+        editandoId = null;
+        limparCampos();
+        atualizarModoEdicao();
+        mostrarStatus('Edição cancelada.', 'info', 2000);
     }
 
     function pesoRegistro(item) {
@@ -297,6 +337,11 @@
             check.checked = !!i.confirmado;
             check.addEventListener('change', () => confirmarVaga(i.id, check.checked));
 
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicao(i.id));
+
             const btnApagar = document.createElement('button');
             btnApagar.className = 'btn btn-del';
             btnApagar.textContent = 'Apagar';
@@ -305,13 +350,15 @@
             div.appendChild(nome);
             div.appendChild(hora);
             div.appendChild(check);
+            div.appendChild(btnEditar);
             div.appendChild(btnApagar);
             el.corpoLista.appendChild(div);
         }
     }
 
     function atualizarTela() {
-        renderizarPainel();
+        atualizarModoEdicao();
+    renderizarPainel();
         renderizarLista();
     }
 
@@ -365,7 +412,7 @@
         }
 
         const ativos = db.filter(i => i.status === 'ativo');
-        const repetido = ativos.find(i => i.paciente === paciente);
+        const repetido = ativos.find(i => i.paciente === paciente && i.id !== editandoId);
         if (repetido) {
             alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO!');
             return;
@@ -373,7 +420,78 @@
 
         salvando = true;
         el.btnSalvar.classList.add('loading');
-        el.btnSalvar.textContent = 'SALVANDO...';
+        el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
+
+        if (editandoId) {
+            const itemOriginal = db.find(i => i.id === editandoId);
+            if (!itemOriginal) {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+                alert('Registro não encontrado para editar.');
+                return;
+            }
+
+            const backup = { ...itemOriginal };
+            itemOriginal.data = data;
+            itemOriginal.paciente = paciente;
+            itemOriginal.acompanhante = temAcomp ? 'SIM' : 'NÃO';
+            itemOriginal.telefone = telefone;
+            itemOriginal.lugar = lugar;
+            itemOriginal.horario = horario;
+            itemOriginal.obs = obs;
+            itemOriginal.isLondrina = isLondrina;
+
+            if (itemOriginal.confirmado) {
+                const confirmadosMesmoTurno = db
+                    .filter(i => i.status === 'ativo' && i.confirmado && i.id !== editandoId)
+                    .filter(i => isTurnoManha(i.horario) === isTurnoManha(horario))
+                    .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+                const limiteTurno = isTurnoManha(horario) ? LIMITE_MANHA : LIMITE_TARDE;
+                const totalSeEditar = confirmadosMesmoTurno + pesoRegistro(itemOriginal);
+                if (totalSeEditar > limiteTurno) {
+                    Object.assign(itemOriginal, backup);
+                    atualizarTela();
+                    salvando = false;
+                    el.btnSalvar.classList.remove('loading');
+                    atualizarModoEdicao();
+                    alert(`Não dá para salvar esta edição porque o ônibus confirmado passaria do limite de ${limiteTurno}.`);
+                    return;
+                }
+            }
+
+            atualizarTela();
+
+            try {
+                await updateDoc(doc(firestore, 'agendamentos', editandoId), {
+                    data,
+                    paciente,
+                    acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                    telefone,
+                    lugar,
+                    horario,
+                    obs,
+                    isLondrina
+                });
+
+                editandoId = null;
+                limparCampos();
+                atualizarModoEdicao();
+                mostrarStatus('Paciente editado com sucesso.');
+            } catch (erro) {
+                console.error(erro);
+                const idx = db.findIndex(i => i.id === backup.id);
+                if (idx >= 0) db[idx] = backup;
+                atualizarTela();
+                alert('Erro ao editar: ' + erro.message);
+                mostrarStatus('Erro ao editar: ' + erro.message, 'erro', 6000);
+            } finally {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+            }
+            return;
+        }
 
         const temporario = {
             id: 'tmp_' + Date.now(),
@@ -420,7 +538,7 @@
         } finally {
             salvando = false;
             el.btnSalvar.classList.remove('loading');
-            el.btnSalvar.textContent = 'SALVAR AGENDAMENTO';
+            atualizarModoEdicao();
         }
     }
 
@@ -570,10 +688,12 @@
 
     el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
     el.btnSalvar.addEventListener('click', salvar);
+    el.btnCancelarEdicao.addEventListener('click', cancelarEdicao);
     el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
     el.inputBusca.addEventListener('input', filtrarNomes);
     el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
 
+    atualizarModoEdicao();
     renderizarPainel();
 </script>
 </body>
