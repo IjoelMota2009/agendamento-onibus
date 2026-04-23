@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transporte Saúde - Carro</title>
+
+    <style>
+        :root {
+            --primary: #166534;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f4f7f6;
+            --dark: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .header {
+            background: var(--dark);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header a {
+            color: #bbf7d0;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .check-box-group {
+            display: flex;
+            gap: 10px;
+            grid-column: span 2;
+        }
+
+        .check-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+
+        .btn-save {
+            background: var(--success);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-cancel-edit {
+            background: #64748b;
+            width: 100%;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .btn-view {
+            background: #4b5563;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            width: 100%;
+            height: 50px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .btn-edit {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 5px 8px;
+            border: 1px solid #bfdbfe;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .btn-toggle {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 5px 8px;
+            border: 1px solid #fde68a;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .btn-del {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 5px 8px;
+            border: 1px solid #fecaca;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .vagas-box {
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            background: #16a34a;
+            margin-bottom: 15px;
+        }
+
+        .vagas-numero {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+        }
+
+        #listaConfirmacao {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            border: 2px solid var(--primary);
+            background: #f0fdf4;
+            font-weight: bold;
+        }
+
+        .item-confirmar {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #fff;
+        }
+
+        .item-cancelado {
+            opacity: 0.6;
+            background: #f8fafc;
+        }
+
+        .nome-paciente {
+            flex: 1;
+            font-weight: 500;
+            font-size: 15px;
+            text-transform: uppercase;
+        }
+
+        .hora-paciente {
+            width: 70px;
+            text-align: center;
+            font-weight: bold;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 4px;
+            margin: 0 10px;
+        }
+
+        .tag {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .tag-ok {
+            color: #059669;
+            border: 1px solid #059669;
+        }
+
+        .tag-cancelado {
+            color: #dc2626;
+            border: 1px solid #dc2626;
+        }
+
+        .tag-acomp {
+            color: #7c3aed;
+            border: 1px solid #7c3aed;
+        }
+
+        .status-box {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-ok {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status-erro {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status-info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .editando-box {
+            display: none;
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        @media (max-width: 850px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .onibus-section {
+                page-break-before: always;
+                margin-bottom: 25px;
+            }
+
+            .onibus-section:first-child {
+                page-break-before: auto;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+
+            th,
+            td {
+                border: 1px solid #000;
+                padding: 6px;
+                text-align: left;
+                font-size: 11px;
+            }
+
+            th {
+                background: #f2f2f2 !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .header-print {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                border-bottom: 2px solid #000;
+                padding-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header no-print">
+            <h1>SISTEMA DE TRANSPORTE - CARRO</h1>
+            <a href="index.html">← Voltar ao menu</a>
+        </div>
+
+        <div class="main-grid no-print">
+            <div class="card">
+                <h3>1. Cadastrar Paciente - Carro</h3>
+
+                <div id="editandoBox" class="editando-box"></div>
+
+                <div class="form-row">
+                    <div style="grid-column: span 2;">
+                        <label for="data">Data da Viagem:</label>
+                        <input type="date" id="data">
+                    </div>
+
+                    <div style="grid-column: span 2;">
+                        <label for="paciente">Nome do Paciente:</label>
+                        <input type="text" id="paciente" placeholder="Nome Completo">
+                    </div>
+
+                    <div>
+                        <label for="telefone">Telefone:</label>
+                        <input type="text" id="telefone" placeholder="(00) 00000-0000">
+                    </div>
+
+                    <div>
+                        <label for="localBusca">Onde buscar:</label>
+                        <input type="text" id="localBusca" placeholder="Casa, rua, bairro, referência...">
+                    </div>
+
+                    <div>
+                        <label for="lugar">Destino:</label>
+                        <input type="text" id="lugar" placeholder="Ex: ICL, CIA, hospital, clínica...">
+                    </div>
+
+                    <div>
+                        <label for="horario">Horário:</label>
+                        <input type="time" id="horario">
+                    </div>
+
+                    <div>
+                        <label for="obs">Observação:</label>
+                        <input type="text" id="obs" placeholder="Cadeira de rodas, detalhe, referência...">
+                    </div>
+
+                    <div class="check-box-group">
+                        <div class="check-box">
+                            <input type="checkbox" id="acompanhante">
+                            <label for="acompanhante">Com Acompanhante</label>
+                        </div>
+
+                        <div class="check-box">
+                            <input type="checkbox" id="carroBaixo">
+                            <label for="carroBaixo">Vai de carro baixo</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-save" id="btnSalvar">SALVAR AGENDAMENTO</button>
+                <button class="btn btn-cancel-edit" id="btnCancelarEdicao">CANCELAR EDIÇÃO</button>
+
+                <div id="statusMensagem" class="status-box"></div>
+            </div>
+
+            <div class="card">
+                <h3>2. Controle do Dia</h3>
+
+                <div id="statusData" style="text-align: center; font-weight: bold; margin-bottom: 15px; color: var(--primary);">
+                    Selecione uma data
+                </div>
+
+                <div class="vagas-box">
+                    <span>CARRO - VAGAS CONFIRMADAS</span>
+                    <span class="vagas-numero" id="vCarro">0 / 20</span>
+                </div>
+
+                <button class="btn btn-view" id="btnVerLista">VER LISTA E PESQUISAR</button>
+
+                <div id="listaConfirmacao">
+                    <div class="search-box">
+                        <input type="text" id="inputBusca" placeholder="🔍 Pesquisar nome na lista...">
+                    </div>
+
+                    <div id="corpoLista"></div>
+
+                    <button class="btn btn-print" id="btnGerarRelatorio">GERAR PLANILHA PARA IMPRESSÃO</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="relatorioArea"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            query,
+            where,
+            updateDoc,
+            doc,
+            Timestamp,
+            onSnapshot
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // =====================================================
+        // CONFIGURAÇÃO DO FIREBASE
+        // =====================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+            authDomain: "agendamento-a11d3.firebaseapp.com",
+            projectId: "agendamento-a11d3",
+            storageBucket: "agendamento-a11d3.firebasestorage.app",
+            messagingSenderId: "31776903316",
+            appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const firestore = getFirestore(app);
+
+        // Coleção separada do sistema de ônibus.
+        const COLECAO = 'agendamentos_carro';
+        const LIMITE_CARRO = 20;
+
+        // =====================================================
+        // ESTADO DA TELA
+        // =====================================================
+        let db = [];
+        let dataAtual = '';
+        let unsubscribeAtual = null;
+        let listaAberta = false;
+        let salvando = false;
+        let editandoId = null;
+
+        // =====================================================
+        // ELEMENTOS DA TELA
+        // =====================================================
+        const el = {
+            data: document.getElementById('data'),
+            paciente: document.getElementById('paciente'),
+            telefone: document.getElementById('telefone'),
+            localBusca: document.getElementById('localBusca'),
+            lugar: document.getElementById('lugar'),
+            horario: document.getElementById('horario'),
+            obs: document.getElementById('obs'),
+            acompanhante: document.getElementById('acompanhante'),
+            carroBaixo: document.getElementById('carroBaixo'),
+            btnSalvar: document.getElementById('btnSalvar'),
+            btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
+            btnVerLista: document.getElementById('btnVerLista'),
+            btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+            inputBusca: document.getElementById('inputBusca'),
+            statusMensagem: document.getElementById('statusMensagem'),
+            statusData: document.getElementById('statusData'),
+            vCarro: document.getElementById('vCarro'),
+            listaConfirmacao: document.getElementById('listaConfirmacao'),
+            corpoLista: document.getElementById('corpoLista'),
+            relatorioArea: document.getElementById('relatorioArea'),
+            editandoBox: document.getElementById('editandoBox')
+        };
+
+        // =====================================================
+        // FUNÇÕES UTILITÁRIAS
+        // =====================================================
+        function mostrarStatus(texto, tipo = 'ok', tempo = 4000) {
+            el.statusMensagem.textContent = texto;
+            el.statusMensagem.className = `status-box ${
+                tipo === 'erro' ? 'status-erro' : tipo === 'info' ? 'status-info' : 'status-ok'
+            }`;
+            el.statusMensagem.style.display = 'block';
+
+            if (tempo > 0) {
+                setTimeout(() => {
+                    if (el.statusMensagem.textContent === texto) {
+                        el.statusMensagem.style.display = 'none';
+                    }
+                }, tempo);
+            }
+        }
+
+        function normalizar(texto) {
+            return (texto || '').trim().toUpperCase();
+        }
+
+        function limparCampos() {
+            el.paciente.value = '';
+            el.telefone.value = '';
+            el.localBusca.value = '';
+            el.lugar.value = '';
+            el.horario.value = '';
+            el.obs.value = '';
+            el.acompanhante.checked = false;
+            el.carroBaixo.checked = false;
+        }
+
+        function contarConfirmados(lista = db) {
+            return lista.filter(item => item.status === 'ativo' && item.confirmado).length;
+        }
+
+        function ordenar(lista) {
+            return [...lista].sort((a, b) => {
+                const lugarA = normalizar(a.lugar);
+                const lugarB = normalizar(b.lugar);
+
+                if (lugarA !== lugarB) {
+                    return lugarA.localeCompare(lugarB);
+                }
+
+                const horarioA = a.horario || '';
+                const horarioB = b.horario || '';
+
+                if (horarioA !== horarioB) {
+                    return horarioA.localeCompare(horarioB);
+                }
+
+                return normalizar(a.paciente).localeCompare(normalizar(b.paciente));
+            });
+        }
+
+        // =====================================================
+        // RENDERIZAÇÃO DA TELA
+        // =====================================================
+        function renderizarPainel() {
+            if (!dataAtual) {
+                el.statusData.innerText = 'Selecione uma data';
+                el.vCarro.innerText = `0 / ${LIMITE_CARRO}`;
+                return;
+            }
+
+            el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
+            el.vCarro.innerText = `${contarConfirmados()} / ${LIMITE_CARRO}`;
+        }
+
+        function renderizarLista() {
+            if (!listaAberta) return;
+
+            const busca = normalizar(el.inputBusca.value);
+            const ativos = ordenar(db.filter(item => item.status === 'ativo'));
+
+            const filtrados = ativos.filter(item => {
+                return !busca ||
+                    normalizar(item.paciente).includes(busca) ||
+                    normalizar(item.lugar).includes(busca) ||
+                    normalizar(item.localBusca).includes(busca);
+            });
+
+            el.corpoLista.innerHTML = '';
+
+            if (filtrados.length === 0) {
+                el.corpoLista.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente encontrado.</div>';
+                return;
+            }
+
+            for (const item of filtrados) {
+                const div = document.createElement('div');
+                div.className = 'item-confirmar' + (!item.confirmado ? ' item-cancelado' : '');
+
+                const nome = document.createElement('div');
+                nome.className = 'nome-paciente';
+                nome.innerHTML = `
+                    ${item.paciente || ''}
+                    ${item.confirmado
+                        ? '<span class="tag tag-ok">CONFIRMADO</span>'
+                        : '<span class="tag tag-cancelado">DESMARCADO</span>'}
+                    ${item.acompanhante === 'SIM'
+                        ? '<span class="tag tag-acomp">+ACOMP</span>'
+                        : ''}
+                    <br>
+                    <small style="font-weight:400;color:#64748b">
+                        <b>Busca:</b> ${item.localBusca || ''}
+                        &nbsp; | &nbsp;
+                        <b>Destino:</b> ${item.lugar || ''}
+                        ${item.obs ? ' - ' + item.obs : ''}
+                    </small>
+                `;
+
+                const hora = document.createElement('div');
+                hora.className = 'hora-paciente';
+                hora.textContent = item.horario || '';
+
+                const btnEditar = document.createElement('button');
+                btnEditar.className = 'btn btn-edit';
+                btnEditar.textContent = 'Editar';
+                btnEditar.addEventListener('click', () => iniciarEdicao(item.id));
+
+                const btnToggle = document.createElement('button');
+                btnToggle.className = 'btn btn-toggle';
+                btnToggle.textContent = item.confirmado ? 'Desmarcar' : 'Confirmar';
+                btnToggle.addEventListener('click', () => alternarConfirmacao(item.id));
+
+                const btnApagar = document.createElement('button');
+                btnApagar.className = 'btn btn-del';
+                btnApagar.textContent = 'Apagar';
+                btnApagar.addEventListener('click', () => excluir(item.id));
+
+                div.append(nome, hora, btnEditar, btnToggle, btnApagar);
+                el.corpoLista.appendChild(div);
+            }
+        }
+
+        function atualizarTela() {
+            renderizarPainel();
+            renderizarLista();
+        }
+
+        // =====================================================
+        // FIREBASE - ESCUTAR DADOS DA DATA SELECIONADA
+        // =====================================================
+        function iniciarEscutaData(data) {
+            dataAtual = data;
+            db = [];
+            atualizarTela();
+
+            if (!data) return;
+
+            if (unsubscribeAtual) {
+                unsubscribeAtual();
+                unsubscribeAtual = null;
+            }
+
+            mostrarStatus('Carregando dados da data selecionada...', 'info', 1500);
+
+            const q = query(
+                collection(firestore, COLECAO),
+                where('data', '==', data)
+            );
+
+            unsubscribeAtual = onSnapshot(
+                q,
+                snapshot => {
+                    db = snapshot.docs.map(documento => ({
+                        id: documento.id,
+                        ...documento.data()
+                    }));
+                    atualizarTela();
+                },
+                erro => {
+                    console.error(erro);
+                    mostrarStatus('Erro ao carregar dados: ' + erro.message, 'erro', 6000);
+                }
+            );
+        }
+
+        // =====================================================
+        // FORMULÁRIO - VALIDAÇÃO E SALVAMENTO
+        // =====================================================
+        function pegarDadosFormulario() {
+            const data = el.data.value;
+            const paciente = normalizar(el.paciente.value);
+            const horario = el.horario.value;
+
+            if (!data || !paciente || !horario) {
+                alert('Preencha Nome, Data e Horário!');
+                return null;
+            }
+
+            return {
+                data,
+                paciente,
+                telefone: el.telefone.value.trim(),
+                localBusca: el.localBusca.value.trim(),
+                lugar: normalizar(el.lugar.value),
+                horario,
+                obs: el.obs.value.trim(),
+                acompanhante: el.acompanhante.checked ? 'SIM' : 'NÃO',
+                carroBaixo: el.carroBaixo.checked ? 'SIM' : 'NÃO'
+            };
+        }
+
+        function verificarDuplicidade(dados) {
+            return db.find(item => {
+                return item.status === 'ativo' &&
+                    item.id !== editandoId &&
+                    normalizar(item.paciente) === dados.paciente;
+            });
+        }
+
+        async function salvar() {
+            if (salvando) return;
+
+            const dados = pegarDadosFormulario();
+            if (!dados) return;
+
+            if (dataAtual !== dados.data) {
+                iniciarEscutaData(dados.data);
+            }
+
+            const repetido = verificarDuplicidade(dados);
+            if (repetido) {
+                alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO NESTA DATA!');
+                return;
+            }
+
+            salvando = true;
+            el.btnSalvar.classList.add('loading');
+            el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
+
+            try {
+                if (editandoId) {
+                    await updateDoc(doc(firestore, COLECAO, editandoId), {
+                        ...dados,
+                        atualizadoEm: Timestamp.now()
+                    });
+
+                    mostrarStatus('Agendamento editado com sucesso.');
+                    cancelarEdicao(false);
+                    return;
+                }
+
+                let confirmado = true;
+                const confirmados = contarConfirmados();
+
+                if (confirmados >= LIMITE_CARRO) {
+                    const continuar = confirm('As 20 vagas confirmadas já estão preenchidas. Salvar como DESMARCADO?');
+                    if (!continuar) return;
+                    confirmado = false;
+                }
+
+                await addDoc(collection(firestore, COLECAO), {
+                    ...dados,
+                    confirmado,
+                    status: 'ativo',
+                    criadoEm: Timestamp.now(),
+                    excluidoEm: null,
+                    motivoExclusao: null
+                });
+
+                limparCampos();
+                mostrarStatus('Agendamento salvo com sucesso.');
+            } catch (erro) {
+                console.error(erro);
+                alert('Erro ao salvar: ' + erro.message);
+                mostrarStatus('Erro ao salvar: ' + erro.message, 'erro', 6000);
+            } finally {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                el.btnSalvar.textContent = editandoId ? 'SALVAR EDIÇÃO' : 'SALVAR AGENDAMENTO';
+            }
+        }
+
+        // =====================================================
+        // EDIÇÃO
+        // =====================================================
+        function iniciarEdicao(id) {
+            const item = db.find(registro => registro.id === id);
+            if (!item) return;
+
+            editandoId = id;
+
+            el.data.value = item.data || '';
+            el.paciente.value = item.paciente || '';
+            el.telefone.value = item.telefone || '';
+            el.localBusca.value = item.localBusca || '';
+            el.lugar.value = item.lugar || '';
+            el.horario.value = item.horario || '';
+            el.obs.value = item.obs || '';
+            el.acompanhante.checked = item.acompanhante === 'SIM';
+            el.carroBaixo.checked = item.carroBaixo === 'SIM';
+
+            el.btnSalvar.textContent = 'SALVAR EDIÇÃO';
+            el.btnCancelarEdicao.style.display = 'block';
+            el.editandoBox.textContent = 'Editando: ' + (item.paciente || '');
+            el.editandoBox.style.display = 'block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicao(limpar = true) {
+            editandoId = null;
+            el.btnSalvar.textContent = 'SALVAR AGENDAMENTO';
+            el.btnCancelarEdicao.style.display = 'none';
+            el.editandoBox.style.display = 'none';
+
+            if (limpar) limparCampos();
+        }
+
+        // =====================================================
+        // CONFIRMAR / DESMARCAR / EXCLUIR
+        // =====================================================
+        async function alternarConfirmacao(id) {
+            const item = db.find(registro => registro.id === id);
+            if (!item) return;
+
+            const novoValor = !item.confirmado;
+
+            if (novoValor && contarConfirmados() >= LIMITE_CARRO) {
+                alert('Limite de 20 vagas confirmadas atingido.');
+                return;
+            }
+
+            const backup = item.confirmado;
+            item.confirmado = novoValor;
+            atualizarTela();
+
+            try {
+                await updateDoc(doc(firestore, COLECAO, id), {
+                    confirmado: novoValor,
+                    atualizadoEm: Timestamp.now()
+                });
+            } catch (erro) {
+                console.error(erro);
+                item.confirmado = backup;
+                atualizarTela();
+                alert('Erro ao alterar confirmação: ' + erro.message);
+            }
+        }
+
+        async function excluir(id) {
+            const motivo = prompt('Motivo da exclusão:');
+            if (motivo === null) return;
+
+            const item = db.find(registro => registro.id === id);
+            const backup = item ? { ...item } : null;
+
+            if (item) {
+                item.status = 'excluido';
+                item.excluidoEm = new Date().toISOString();
+                item.motivoExclusao = motivo.trim() || 'Sem motivo informado';
+                atualizarTela();
+            }
+
+            try {
+                await updateDoc(doc(firestore, COLECAO, id), {
+                    status: 'excluido',
+                    excluidoEm: Timestamp.now(),
+                    motivoExclusao: motivo.trim() || 'Sem motivo informado'
+                });
+
+                mostrarStatus('Paciente marcado como excluído.');
+            } catch (erro) {
+                console.error(erro);
+
+                if (backup) {
+                    const index = db.findIndex(registro => registro.id === id);
+                    if (index >= 0) db[index] = backup;
+                    atualizarTela();
+                }
+
+                alert('Erro ao excluir: ' + erro.message);
+            }
+        }
+
+        // =====================================================
+        // LISTA E RELATÓRIO
+        // =====================================================
+        function abrirListaConfirmacao() {
+            if (!el.data.value) {
+                alert('Escolha a data no calendário!');
+                return;
+            }
+
+            listaAberta = true;
+            el.listaConfirmacao.style.display = 'block';
+            renderizarLista();
+        }
+
+        function tabela(lista) {
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Buscar em</th>
+                            <th>Destino</th>
+                            <th>Telefone</th>
+                            <th>Acomp.</th>
+                            <th>Vai de carro baixo</th>
+                            <th>Obs.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const item of lista) {
+                html += `
+                    <tr>
+                        <td><b>${item.horario || ''}</b></td>
+                        <td>${item.paciente || ''}</td>
+                        <td>${item.localBusca || ''}</td>
+                        <td>${item.lugar || ''}</td>
+                        <td>${item.telefone || ''}</td>
+                        <td style="text-align:center">${item.acompanhante || ''}</td>
+                        <td style="text-align:center">${item.carroBaixo || 'NÃO'}</td>
+                        <td>${item.obs || ''}</td>
+                        <td>${item.confirmado ? 'CONFIRMADO' : 'DESMARCADO'}</td>
+                    </tr>
+                `;
+            }
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            return html;
+        }
+
+        function viaRelatorio(lista, via, dataBr, confirmados) {
+            return `
+                <div class="onibus-section">
+                    <div class="header-print">
+                        <div>
+                            <h2 style="margin:0">${via} - DATA: ${dataBr} - CARRO</h2>
+                            <div style="font-size:13px;margin-top:4px">
+                                <b>Motorista:</b> ____________________
+                                &nbsp;&nbsp;
+                                <b>Carro:</b> ____________________
+                            </div>
+                        </div>
+                        <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${LIMITE_CARRO}</h2>
+                    </div>
+                    ${tabela(lista)}
+                </div>
+            `;
+        }
+
+        function gerarRelatorio() {
+            if (!dataAtual) {
+                alert('Escolha a data no calendário!');
+                return;
+            }
+
+            const ativos = ordenar(db.filter(item => item.status === 'ativo'));
+
+            if (ativos.length === 0) {
+                alert('Nenhum paciente cadastrado!');
+                return;
+            }
+
+            const confirmados = ativos.filter(item => item.confirmado).length;
+            const dataBr = dataAtual.split('-').reverse().join('/');
+
+            el.relatorioArea.innerHTML =
+                viaRelatorio(ativos, '1ª VIA', dataBr, confirmados) +
+                viaRelatorio(ativos, '2ª VIA', dataBr, confirmados);
+
+            setTimeout(() => window.print(), 300);
+        }
+
+        // =====================================================
+        // EVENTOS
+        // =====================================================
+        el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
+        el.btnSalvar.addEventListener('click', salvar);
+        el.btnCancelarEdicao.addEventListener('click', () => cancelarEdicao(true));
+        el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
+        el.inputBusca.addEventListener('input', renderizarLista);
+        el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+
+        renderizarPainel();
+    </script>
+</body>
+</html>

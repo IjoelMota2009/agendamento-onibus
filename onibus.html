@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transporte Saúde - Gestão Final</title>
+    <style>
+        :root { --primary: #0056b3; --success: #28a745; --danger: #dc3545; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { background: #1a1a1a; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .search-box { margin-bottom: 15px; }
+        .search-box input { border: 2px solid var(--primary); background: #f0f7ff; font-weight: bold; }
+        .check-box-group { display: flex; gap: 10px; grid-column: span 2; }
+        .check-box { flex: 1; display: flex; align-items: center; gap: 8px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
+        .btn { padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
+        .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
+        .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
+        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 11px; margin-left: 5px; }
+        .btn-cancel { background: #6b7280; width: 100%; margin-top: 8px; }
+        .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
+        .vagas-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .vagas-box { padding: 15px; border-radius: 8px; text-align: center; color: white; }
+        .manha { background: #0284c7; }
+        .tarde { background: #d97706; }
+        .vagas-numero { font-size: 22px; font-weight: bold; display: block; }
+        #listaConfirmacao { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        .item-confirmar { display: flex; align-items: center; padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; background: #fff; }
+        .nome-paciente { flex: 1; font-weight: 500; font-size: 15px; text-transform: uppercase; }
+        .hora-paciente { width: 70px; text-align: center; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 0 10px; }
+        .check-confirmar { width: 22px; height: 22px; cursor: pointer; margin-right: 10px; }
+        .tag { font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+        .tag-londrina { color: #dc2626; border: 1px solid #dc2626; }
+        .tag-acomp { color: #059669; border: 1px solid #059669; }
+        .status-box { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
+        .status-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .loading { opacity: 0.7; pointer-events: none; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background: white; }
+            .onibus-section { page-break-before: always; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
+            .onibus-section:first-child { page-break-before: auto; }
+            .onibus-section:last-child { border-bottom: none; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 11px; }
+            th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+            .header-print { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header no-print">
+        <h1>SISTEMA DE TRANSPORTE - SAÚDE</h1>
+    </div>
+
+    <div class="main-grid no-print">
+        <div class="card">
+            <h3>1. Cadastrar Paciente</h3>
+            <div class="form-row">
+                <div style="grid-column: span 2;">
+                    <label for="data">Data da Viagem:</label>
+                    <input type="date" id="data">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label for="paciente">Nome do Paciente:</label>
+                    <input type="text" id="paciente" placeholder="Nome Completo">
+                </div>
+                <div>
+                    <label for="telefone">Telefone:</label>
+                    <input type="text" id="telefone" placeholder="(00) 00000-0000">
+                </div>
+                <div>
+                    <label for="lugar">Destino:</label>
+                    <input type="text" id="lugar" placeholder="Ex: HC, HU, ICL">
+                </div>
+                <div>
+                    <label for="horario">Horário da Consulta:</label>
+                    <input type="time" id="horario">
+                </div>
+                <div>
+                    <label for="obs">Observação:</label>
+                    <input type="text" id="obs" placeholder="Vila, rua, referência...">
+                </div>
+                <div class="check-box-group">
+                    <div class="check-box">
+                        <input type="checkbox" id="acompanhante">
+                        <label for="acompanhante">Com Acompanhante</label>
+                    </div>
+                    <div class="check-box">
+                        <input type="checkbox" id="londrina">
+                        <label for="londrina">Londrina</label>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-save" id="btnSalvar">SALVAR AGENDAMENTO</button>
+            <button class="btn btn-cancel" id="btnCancelarEdicao" style="display:none">CANCELAR EDIÇÃO</button>
+            <div id="statusMensagem" class="status-box"></div>
+        </div>
+
+        <div class="card">
+            <h3>2. Controle do Dia</h3>
+            <div id="statusData" style="text-align: center; font-weight: bold; margin-bottom: 15px; color: var(--primary);">Selecione uma data</div>
+
+            <div class="vagas-container">
+                <div class="vagas-box manha">
+                    <span>ÔNIBUS 5H CONFIRMADOS (consulta até 11:30)</span>
+                    <span class="vagas-numero" id="vManha">0 / 32</span>
+                </div>
+                <div class="vagas-box tarde">
+                    <span>ÔNIBUS 10H CONFIRMADOS (consulta após 11:30)</span>
+                    <span class="vagas-numero" id="vTarde">0 / 28</span>
+                </div>
+            </div>
+
+            <button class="btn btn-view" id="btnVerLista">VER LISTA E PESQUISAR</button>
+
+            <div id="listaConfirmacao">
+                <div class="search-box">
+                    <input type="text" id="inputBusca" placeholder="🔍 Pesquisar nome na lista...">
+                </div>
+                <div id="corpoLista"></div>
+                <button class="btn btn-print" id="btnGerarRelatorio">GERAR PLANILHA PARA IMPRESSÃO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="relatorioArea"></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        query,
+        where,
+        updateDoc,
+        doc,
+        Timestamp,
+        onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+        authDomain: "agendamento-a11d3.firebaseapp.com",
+        projectId: "agendamento-a11d3",
+        storageBucket: "agendamento-a11d3.firebasestorage.app",
+        messagingSenderId: "31776903316",
+        appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const firestore = getFirestore(app);
+
+    const CORTE_ONIBUS = "11:30";
+    const LIMITE_MANHA = 32;
+    const LIMITE_TARDE = 28;
+
+    let db = [];
+    let dataAtual = "";
+    let unsubscribeAtual = null;
+    let listaAberta = false;
+    let salvando = false;
+    let editandoId = null;
+
+    const el = {
+        data: document.getElementById('data'),
+        paciente: document.getElementById('paciente'),
+        telefone: document.getElementById('telefone'),
+        lugar: document.getElementById('lugar'),
+        horario: document.getElementById('horario'),
+        obs: document.getElementById('obs'),
+        acompanhante: document.getElementById('acompanhante'),
+        londrina: document.getElementById('londrina'),
+        btnSalvar: document.getElementById('btnSalvar'),
+        btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
+        btnVerLista: document.getElementById('btnVerLista'),
+        btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+        inputBusca: document.getElementById('inputBusca'),
+        statusMensagem: document.getElementById('statusMensagem'),
+        statusData: document.getElementById('statusData'),
+        vManha: document.getElementById('vManha'),
+        vTarde: document.getElementById('vTarde'),
+        listaConfirmacao: document.getElementById('listaConfirmacao'),
+        corpoLista: document.getElementById('corpoLista'),
+        relatorioArea: document.getElementById('relatorioArea')
+    };
+
+    function mostrarStatus(texto, tipo = 'ok', tempo = 4000) {
+        el.statusMensagem.textContent = texto;
+        el.statusMensagem.className = `status-box ${tipo === 'erro' ? 'status-erro' : tipo === 'info' ? 'status-info' : 'status-ok'}`;
+        el.statusMensagem.style.display = 'block';
+        if (tempo > 0) {
+            setTimeout(() => {
+                if (el.statusMensagem.textContent === texto) {
+                    el.statusMensagem.style.display = 'none';
+                }
+            }, tempo);
+        }
+    }
+
+    function limparCampos() {
+        el.paciente.value = '';
+        el.telefone.value = '';
+        el.lugar.value = '';
+        el.horario.value = '';
+        el.obs.value = '';
+        el.acompanhante.checked = false;
+        el.londrina.checked = false;
+    }
+
+    function atualizarModoEdicao() {
+        const emEdicao = !!editandoId;
+        el.btnSalvar.textContent = emEdicao ? 'SALVAR EDIÇÃO' : 'SALVAR AGENDAMENTO';
+        el.btnCancelarEdicao.style.display = emEdicao ? 'block' : 'none';
+    }
+
+    function iniciarEdicao(id) {
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde a sincronização terminar antes de editar.');
+            return;
+        }
+
+        editandoId = id;
+        el.data.value = item.data || '';
+        el.paciente.value = item.paciente || '';
+        el.telefone.value = item.telefone || '';
+        el.lugar.value = item.lugar || '';
+        el.horario.value = item.horario || '';
+        el.obs.value = item.obs || '';
+        el.acompanhante.checked = item.acompanhante === 'SIM';
+        el.londrina.checked = !!item.isLondrina;
+        atualizarModoEdicao();
+        mostrarStatus('Editando paciente: ' + (item.paciente || ''), 'info', 2500);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicao() {
+        editandoId = null;
+        limparCampos();
+        atualizarModoEdicao();
+        mostrarStatus('Edição cancelada.', 'info', 2000);
+    }
+
+    function pesoRegistro(item) {
+        return item.acompanhante === 'SIM' ? 2 : 1;
+    }
+
+    function isTurnoManha(horario) {
+        return horario <= CORTE_ONIBUS;
+    }
+
+    function normalizarLugar(lugar) {
+        return (lugar || '').trim().toUpperCase();
+    }
+
+    function ordenar(lista) {
+        return [...lista].sort((a, b) => {
+            const turnoA = isTurnoManha(a.horario) ? 0 : 1;
+            const turnoB = isTurnoManha(b.horario) ? 0 : 1;
+            if (turnoA !== turnoB) return turnoA - turnoB;
+
+            const londrinaA = a.isLondrina ? 1 : 0;
+            const londrinaB = b.isLondrina ? 1 : 0;
+            if (londrinaA !== londrinaB) return londrinaA - londrinaB;
+
+            const lugarA = normalizarLugar(a.lugar);
+            const lugarB = normalizarLugar(b.lugar);
+            if (lugarA !== lugarB) return lugarA.localeCompare(lugarB);
+
+            if ((a.horario || '') !== (b.horario || '')) return (a.horario || '').localeCompare(b.horario || '');
+            return (a.paciente || '').localeCompare(b.paciente || '');
+        });
+    }
+
+    function renderizarPainel() {
+        if (!dataAtual) {
+            el.statusData.innerText = 'Selecione uma data';
+            el.vManha.innerText = `0 / ${LIMITE_MANHA}`;
+            el.vTarde.innerText = `0 / ${LIMITE_TARDE}`;
+            return;
+        }
+
+        el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
+
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        const m = confirmados.filter(i => isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+        const t = confirmados.filter(i => !isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+
+        el.vManha.innerText = `${m} / ${LIMITE_MANHA}`;
+        el.vTarde.innerText = `${t} / ${LIMITE_TARDE}`;
+    }
+
+    function renderizarLista() {
+        if (!listaAberta) return;
+
+        const busca = el.inputBusca.value.trim().toUpperCase();
+        const ativos = ordenar(db.filter(i => i.status === 'ativo'));
+        const filtrados = ativos.filter(i => !busca || (i.paciente || '').includes(busca));
+
+        el.corpoLista.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            el.corpoLista.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente encontrado.</div>';
+            return;
+        }
+
+        for (const i of filtrados) {
+            const div = document.createElement('div');
+            div.className = 'item-confirmar';
+            div.dataset.id = i.id;
+            div.dataset.nome = i.paciente || '';
+
+            const nome = document.createElement('div');
+            nome.className = 'nome-paciente';
+            nome.innerHTML = `${i.paciente || ''} ${i.isLondrina ? '<span class="tag tag-londrina">LONDRINA</span>' : ''} ${i.acompanhante === 'SIM' ? '<span class="tag tag-acomp">+ACOMP</span>' : ''}`;
+
+            const hora = document.createElement('div');
+            hora.className = 'hora-paciente';
+            hora.textContent = i.horario || '';
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.className = 'check-confirmar';
+            check.checked = !!i.confirmado;
+            check.addEventListener('change', () => confirmarVaga(i.id, check.checked));
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicao(i.id));
+
+            const btnApagar = document.createElement('button');
+            btnApagar.className = 'btn btn-del';
+            btnApagar.textContent = 'Apagar';
+            btnApagar.addEventListener('click', () => excluir(i.id));
+
+            div.appendChild(nome);
+            div.appendChild(hora);
+            div.appendChild(check);
+            div.appendChild(btnEditar);
+            div.appendChild(btnApagar);
+            el.corpoLista.appendChild(div);
+        }
+    }
+
+    function atualizarTela() {
+        atualizarModoEdicao();
+    renderizarPainel();
+        renderizarLista();
+    }
+
+    function iniciarEscutaData(data) {
+        dataAtual = data;
+        db = [];
+        atualizarTela();
+
+        if (!data) return;
+
+        if (unsubscribeAtual) {
+            unsubscribeAtual();
+            unsubscribeAtual = null;
+        }
+
+        mostrarStatus('Carregando dados da data selecionada...', 'info', 1500);
+
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('data', '==', data)
+        );
+
+        unsubscribeAtual = onSnapshot(q, (snapshot) => {
+            db = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            atualizarTela();
+        }, (erro) => {
+            console.error(erro);
+            mostrarStatus('Erro ao carregar dados: ' + erro.message, 'erro', 6000);
+        });
+    }
+
+    async function salvar() {
+        if (salvando) return;
+
+        const data = el.data.value;
+        const paciente = el.paciente.value.trim().toUpperCase();
+        const temAcomp = el.acompanhante.checked;
+        const telefone = el.telefone.value.trim();
+        const lugar = el.lugar.value.trim().toUpperCase();
+        const horario = el.horario.value;
+        const obs = el.obs.value.trim();
+        const isLondrina = el.londrina.checked;
+
+        if (!data || !paciente || !horario) {
+            alert('Preencha Nome, Data e Horário!');
+            return;
+        }
+
+        if (dataAtual !== data) {
+            iniciarEscutaData(data);
+        }
+
+        const ativos = db.filter(i => i.status === 'ativo');
+        const repetido = ativos.find(i => i.paciente === paciente && i.id !== editandoId);
+        if (repetido) {
+            alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO!');
+            return;
+        }
+
+        salvando = true;
+        el.btnSalvar.classList.add('loading');
+        el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
+
+        if (editandoId) {
+            const itemOriginal = db.find(i => i.id === editandoId);
+            if (!itemOriginal) {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+                alert('Registro não encontrado para editar.');
+                return;
+            }
+
+            const backup = { ...itemOriginal };
+            itemOriginal.data = data;
+            itemOriginal.paciente = paciente;
+            itemOriginal.acompanhante = temAcomp ? 'SIM' : 'NÃO';
+            itemOriginal.telefone = telefone;
+            itemOriginal.lugar = lugar;
+            itemOriginal.horario = horario;
+            itemOriginal.obs = obs;
+            itemOriginal.isLondrina = isLondrina;
+
+            if (itemOriginal.confirmado) {
+                const confirmadosMesmoTurno = db
+                    .filter(i => i.status === 'ativo' && i.confirmado && i.id !== editandoId)
+                    .filter(i => isTurnoManha(i.horario) === isTurnoManha(horario))
+                    .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+                const limiteTurno = isTurnoManha(horario) ? LIMITE_MANHA : LIMITE_TARDE;
+                const totalSeEditar = confirmadosMesmoTurno + pesoRegistro(itemOriginal);
+                if (totalSeEditar > limiteTurno) {
+                    Object.assign(itemOriginal, backup);
+                    atualizarTela();
+                    salvando = false;
+                    el.btnSalvar.classList.remove('loading');
+                    atualizarModoEdicao();
+                    alert(`Não dá para salvar esta edição porque o ônibus confirmado passaria do limite de ${limiteTurno}.`);
+                    return;
+                }
+            }
+
+            atualizarTela();
+
+            try {
+                await updateDoc(doc(firestore, 'agendamentos', editandoId), {
+                    data,
+                    paciente,
+                    acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                    telefone,
+                    lugar,
+                    horario,
+                    obs,
+                    isLondrina
+                });
+
+                editandoId = null;
+                limparCampos();
+                atualizarModoEdicao();
+                mostrarStatus('Paciente editado com sucesso.');
+            } catch (erro) {
+                console.error(erro);
+                const idx = db.findIndex(i => i.id === backup.id);
+                if (idx >= 0) db[idx] = backup;
+                atualizarTela();
+                alert('Erro ao editar: ' + erro.message);
+                mostrarStatus('Erro ao editar: ' + erro.message, 'erro', 6000);
+            } finally {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+            }
+            return;
+        }
+
+        const temporario = {
+            id: 'tmp_' + Date.now(),
+            data,
+            paciente,
+            acompanhante: temAcomp ? 'SIM' : 'NÃO',
+            telefone,
+            lugar,
+            horario,
+            obs,
+            isLondrina,
+            confirmado: false,
+            status: 'ativo'
+        };
+
+        db.push(temporario);
+        atualizarTela();
+
+        try {
+            await addDoc(collection(firestore, 'agendamentos'), {
+                data,
+                paciente,
+                acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                telefone,
+                lugar,
+                horario,
+                obs,
+                isLondrina,
+                confirmado: false,
+                status: 'ativo',
+                criadoEm: Timestamp.now(),
+                excluidoEm: null,
+                motivoExclusao: null
+            });
+
+            limparCampos();
+            mostrarStatus('Agendamento salvo com sucesso.');
+        } catch (erro) {
+            console.error(erro);
+            db = db.filter(i => i.id !== temporario.id);
+            atualizarTela();
+            alert('Erro ao salvar: ' + erro.message);
+            mostrarStatus('Erro ao salvar: ' + erro.message, 'erro', 6000);
+        } finally {
+            salvando = false;
+            el.btnSalvar.classList.remove('loading');
+            atualizarModoEdicao();
+        }
+    }
+
+    function abrirListaConfirmacao() {
+        if (!el.data.value) {
+            alert('Escolha a data no calendário!');
+            return;
+        }
+        listaAberta = true;
+        el.listaConfirmacao.style.display = 'block';
+        renderizarLista();
+    }
+
+    function filtrarNomes() {
+        renderizarLista();
+    }
+
+    async function confirmarVaga(id, valor) {
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde alguns segundos para confirmar. O cadastro ainda está sincronizando.');
+            atualizarTela();
+            return;
+        }
+
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+
+        if (valor) {
+            const confirmadosMesmoTurno = db
+                .filter(i => i.status === 'ativo' && i.confirmado && i.id !== id)
+                .filter(i => isTurnoManha(i.horario) === isTurnoManha(item.horario))
+                .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+
+            const limiteTurno = isTurnoManha(item.horario) ? LIMITE_MANHA : LIMITE_TARDE;
+            const totalSeConfirmar = confirmadosMesmoTurno + pesoRegistro(item);
+
+            if (totalSeConfirmar > limiteTurno) {
+                alert(`Limite de confirmação atingido neste ônibus. Máximo: ${limiteTurno} lugares.`);
+                atualizarTela();
+                return;
+            }
+        }
+
+        item.confirmado = valor;
+        atualizarTela();
+
+        try {
+            await updateDoc(doc(firestore, 'agendamentos', id), { confirmado: valor });
+        } catch (erro) {
+            console.error(erro);
+            item.confirmado = !valor;
+            atualizarTela();
+            alert('Erro ao confirmar: ' + erro.message);
+            mostrarStatus('Erro ao confirmar paciente.', 'erro', 6000);
+        }
+    }
+
+    async function excluir(id) {
+        const motivo = prompt('Motivo da exclusão:');
+        if (motivo === null) return;
+
+        const item = db.find(i => i.id === id);
+        const backup = item ? { ...item } : null;
+
+        if (item) {
+            item.status = 'excluido';
+            item.excluidoEm = new Date().toISOString();
+            item.motivoExclusao = motivo.trim() || 'Sem motivo informado';
+            atualizarTela();
+        }
+
+        try {
+            await updateDoc(doc(firestore, 'agendamentos', id), {
+                status: 'excluido',
+                excluidoEm: Timestamp.now(),
+                motivoExclusao: motivo.trim() || 'Sem motivo informado'
+            });
+            mostrarStatus('Paciente marcado como excluído.');
+        } catch (erro) {
+            console.error(erro);
+            if (backup) {
+                const idx = db.findIndex(i => i.id === id);
+                if (idx >= 0) db[idx] = backup;
+                atualizarTela();
+            }
+            alert('Erro ao excluir: ' + erro.message);
+            mostrarStatus('Erro ao excluir paciente.', 'erro', 6000);
+        }
+    }
+
+    function tabela(lista) {
+        let txt = `<table><thead><tr><th>Hora</th><th>Paciente</th><th>Acomp.</th><th>Telefone</th><th>Destino</th><th>Observações</th></tr></thead><tbody>`;
+        for (const i of lista) {
+            txt += `<tr>
+                <td><b>${i.horario || ''}</b></td>
+                <td>${i.paciente || ''}</td>
+                <td style="text-align:center">${i.acompanhante || ''}</td>
+                <td>${i.telefone || ''}</td>
+                <td>${i.isLondrina ? '[LONDRINA] ' : ''}${i.lugar || ''}</td>
+                <td>${i.obs || ''}</td>
+            </tr>`;
+        }
+        return txt + `</tbody></table>`;
+    }
+
+    function gerarRelatorio() {
+        if (!dataAtual) {
+            alert('Escolha a data no calendário!');
+            return;
+        }
+
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        if (confirmados.length === 0) {
+            alert('Nenhum paciente marcado com OK!');
+            return;
+        }
+
+        const m = ordenar(confirmados.filter(i => isTurnoManha(i.horario)));
+        const t = ordenar(confirmados.filter(i => !isTurnoManha(i.horario)));
+        const dataBr = dataAtual.split('-').reverse().join('/');
+        let h = '';
+
+        if (m.length > 0) {
+            const contaM = m.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 5H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaM}/${LIMITE_MANHA}</h2>
+                    </div>
+                    ${tabela(m)}
+                  </div>`;
+        }
+        if (t.length > 0) {
+            const contaT = t.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 10H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaT}/${LIMITE_TARDE}</h2>
+                    </div>
+                    ${tabela(t)}
+                  </div>`;
+        }
+
+        el.relatorioArea.innerHTML = h;
+        setTimeout(() => window.print(), 300);
+    }
+
+    el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
+    el.btnSalvar.addEventListener('click', salvar);
+    el.btnCancelarEdicao.addEventListener('click', cancelarEdicao);
+    el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
+    el.inputBusca.addEventListener('input', filtrarNomes);
+    el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+
+    atualizarModoEdicao();
+    renderizarPainel();
+</script>
+</body>
+</html>
