@@ -463,7 +463,7 @@
             atualizarTela();
 
             try {
-                await updateDoc(doc(firestore, 'agendamentos', editandoId), {
+                await updateDoc(doc(firestore, 'agendamentos_onibus', editandoId), {
                     data,
                     paciente,
                     acompanhante: temAcomp ? 'SIM' : 'NÃO',
@@ -511,7 +511,7 @@
         atualizarTela();
 
         try {
-            await addDoc(collection(firestore, 'agendamentos'), {
+            await addDoc(collection(firestore, 'agendamentos_onibus'), {
                 data,
                 paciente,
                 acompanhante: temAcomp ? 'SIM' : 'NÃO',
@@ -586,7 +586,7 @@
         atualizarTela();
 
         try {
-            await updateDoc(doc(firestore, 'agendamentos', id), { confirmado: valor });
+            await updateDoc(doc(firestore, 'agendamentos_onibus', id), { confirmado: valor });
         } catch (erro) {
             console.error(erro);
             item.confirmado = !valor;
@@ -611,7 +611,7 @@
         }
 
         try {
-            await updateDoc(doc(firestore, 'agendamentos', id), {
+            await updateDoc(doc(firestore, 'agendamentos_onibus', id), {
                 status: 'excluido',
                 excluidoEm: Timestamp.now(),
                 motivoExclusao: motivo.trim() || 'Sem motivo informado'
