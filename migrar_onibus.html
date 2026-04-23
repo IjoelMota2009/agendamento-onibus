@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migrar Agendamentos Ônibus</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f7f6; padding:30px; }
+    .box { max-width:700px; margin:auto; background:white; padding:25px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+    button { background:#0056b3; color:white; border:0; padding:14px 18px; border-radius:6px; font-weight:bold; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    pre { background:#111827; color:#d1fae5; padding:15px; border-radius:8px; white-space:pre-wrap; min-height:180px; }
+    .danger { color:#b91c1c; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Migrar agendamentos do ônibus</h1>
+    <p>Este arquivo copia os documentos da coleção <b>agendamentos</b> para <b>agendamentos_onibus</b>.</p>
+    <p class="danger">Ele NÃO apaga nada da coleção antiga.</p>
+    <button id="btnMigrar">COPIAR AGORA</button>
+    <h3>Resultado:</h3>
+    <pre id="log">Aguardando...</pre>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      doc,
+      setDoc,
+      Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+      authDomain: "agendamento-a11d3.firebaseapp.com",
+      projectId: "agendamento-a11d3",
+      storageBucket: "agendamento-a11d3.firebasestorage.app",
+      messagingSenderId: "31776903316",
+      appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const firestore = getFirestore(app);
+
+    const btn = document.getElementById('btnMigrar');
+    const log = document.getElementById('log');
+
+    function escrever(texto) {
+      log.textContent += texto + "\n";
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      log.textContent = '';
+
+      try {
+        escrever('Lendo coleção antiga: agendamentos...');
+        const origemSnap = await getDocs(collection(firestore, 'agendamentos'));
+
+        if (origemSnap.empty) {
+          escrever('Nenhum documento encontrado em agendamentos. Nada para migrar.');
+          return;
+        }
+
+        escrever(`Encontrados ${origemSnap.size} documentos.`);
+        escrever('Copiando para agendamentos_onibus...');
+
+        let copiados = 0;
+        let erros = 0;
+
+        for (const documento of origemSnap.docs) {
+          try {
+            const dados = documento.data();
+            await setDoc(doc(firestore, 'agendamentos_onibus', documento.id), {
+              ...dados,
+              migradoDe: 'agendamentos',
+              migradoEm: Timestamp.now()
+            }, { merge: true });
+
+            copiados++;
+            escrever(`OK: ${documento.id}`);
+          } catch (erroDoc) {
+            erros++;
+            escrever(`ERRO em ${documento.id}: ${erroDoc.message}`);
+          }
+        }
+
+        escrever('');
+        escrever('MIGRAÇÃO FINALIZADA.');
+        escrever(`Copiados: ${copiados}`);
+        escrever(`Erros: ${erros}`);
+        escrever('');
+        escrever('Agora confira no Firebase se apareceu a coleção agendamentos_onibus.');
+        escrever('Depois teste o HTML do ônibus apontando para agendamentos_onibus.');
+      } catch (erro) {
+        console.error(erro);
+        escrever('ERRO GERAL: ' + erro.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
