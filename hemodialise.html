@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hemodiálise - Transporte Saúde</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --bg: #f4f7f6;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container { max-width: 1250px; margin: auto; }
+
+        .header {
+            background: #1a1a1a;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header a {
+            color: #ddd;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        label { font-size: 14px; font-weight: 600; }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .check-box-group {
+            display: flex;
+            gap: 10px;
+            grid-column: span 2;
+            flex-wrap: wrap;
+        }
+
+        .check-box {
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .check-box input { width: auto; }
+
+        .dias-semana {
+            display: none;
+            grid-column: span 2;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 5px;
+        }
+
+        .dias-semana.ativo { display: block; }
+
+        .dias-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .dia-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        .dia-item input { width: auto; }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+
+        .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
+        .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
+        .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
+        .btn-cancel { background: #6b7280; width: 100%; margin-top: 8px; }
+        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 11px; margin-left: 5px; }
+        .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
+        .btn-small { padding: 8px 10px; font-size: 12px; }
+        .btn-purple { background: var(--primary); }
+        .btn-warning { background: var(--warning); }
+
+        .vagas-box {
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            background: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .vagas-numero {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+            margin-top: 6px;
+        }
+
+        #listaConfirmacao, #listaFixos, #resultadoBusca {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #fff;
+            gap: 8px;
+        }
+
+        .item-main { flex: 1; }
+        .nome-paciente { font-weight: 700; font-size: 15px; text-transform: uppercase; }
+        .detalhes { font-size: 12px; color: #475569; margin-top: 3px; }
+
+        .tag {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .tag-fixo { color: #7c3aed; border: 1px solid #7c3aed; }
+        .tag-acomp { color: #059669; border: 1px solid #059669; }
+        .tag-sync { color: #d97706; border: 1px solid #d97706; }
+
+        .search-box { margin-bottom: 15px; }
+        .search-box input { border: 2px solid var(--primary); background: #faf5ff; font-weight: bold; }
+
+        .status-box { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
+        .status-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+        .loading { opacity: 0.7; pointer-events: none; }
+
+        @media (max-width: 800px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .dias-grid { grid-template-columns: 1fr 1fr; }
+            .item { flex-wrap: wrap; }
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background: white; }
+            .via-section { page-break-before: always; padding-bottom: 20px; }
+            .via-section:first-child { page-break-before: auto; }
+            .header-print {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                border-bottom: 2px solid #000;
+                padding-bottom: 5px;
+                margin-bottom: 10px;
+            }
+            .assinatura-linha {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+                margin: 10px 0 14px;
+                font-size: 13px;
+            }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 11px; }
+            th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header no-print">
+        <h1>HEMODIÁLISE - TRANSPORTE SAÚDE</h1>
+        <a href="index.html">← Voltar ao menu</a>
+    </div>
+
+    <div class="main-grid no-print">
+        <div class="card">
+            <h3>1. Cadastrar Hemodiálise</h3>
+
+            <div class="form-row">
+                <div style="grid-column: span 2;">
+                    <label for="data">Data do Transporte:</label>
+                    <input type="date" id="data">
+                </div>
+
+                <div style="grid-column: span 2;">
+                    <label for="paciente">Nome do Paciente:</label>
+                    <input type="text" id="paciente" placeholder="Nome completo">
+                </div>
+
+                <div>
+                    <label for="telefone">Telefone:</label>
+                    <input type="text" id="telefone" placeholder="(00) 00000-0000">
+                </div>
+
+                <div>
+                    <label for="horario">Horário:</label>
+                    <input type="time" id="horario">
+                </div>
+
+                <div>
+                    <label for="busca">Onde buscar:</label>
+                    <input type="text" id="busca" placeholder="Casa, rua, referência...">
+                </div>
+
+                <div>
+                    <label for="destino">Destino:</label>
+                    <input type="text" id="destino" placeholder="Clínica / Hospital">
+                </div>
+
+                <div style="grid-column: span 2;">
+                    <label for="obs">Observação:</label>
+                    <input type="text" id="obs" placeholder="Detalhes importantes">
+                </div>
+
+                <div class="check-box-group">
+                    <div class="check-box">
+                        <input type="checkbox" id="acompanhante">
+                        <label for="acompanhante">Com acompanhante</label>
+                    </div>
+
+                    <div class="check-box">
+                        <input type="checkbox" id="pacienteFixo">
+                        <label for="pacienteFixo">Paciente fixo</label>
+                    </div>
+                </div>
+
+                <div id="areaDiasSemana" class="dias-semana">
+                    <strong>Dias da semana do paciente fixo:</strong>
+                    <div class="dias-grid">
+                        <label class="dia-item"><input type="checkbox" value="1" class="diaSemana"> Segunda</label>
+                        <label class="dia-item"><input type="checkbox" value="2" class="diaSemana"> Terça</label>
+                        <label class="dia-item"><input type="checkbox" value="3" class="diaSemana"> Quarta</label>
+                        <label class="dia-item"><input type="checkbox" value="4" class="diaSemana"> Quinta</label>
+                        <label class="dia-item"><input type="checkbox" value="5" class="diaSemana"> Sexta</label>
+                        <label class="dia-item"><input type="checkbox" value="6" class="diaSemana"> Sábado</label>
+                    </div>
+                    <div style="font-size:12px;color:#64748b;margin-top:8px;">
+                        Paciente fixo fica salvo em uma lista separada. Depois você pode gerar os agendamentos pela data selecionada.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-save" id="btnSalvar">SALVAR</button>
+            <button class="btn btn-cancel" id="btnCancelarEdicao" style="display:none">CANCELAR EDIÇÃO</button>
+            <div id="statusMensagem" class="status-box"></div>
+        </div>
+
+        <div class="card">
+            <h3>2. Controle do Dia</h3>
+
+            <div id="statusData" style="text-align:center;font-weight:bold;margin-bottom:15px;color:var(--primary);">Selecione uma data</div>
+
+            <div class="vagas-box">
+                <span>VAGAS CONFIRMADAS / CAPACIDADE</span>
+                <span class="vagas-numero" id="vagasDia">0 / 14</span>
+            </div>
+
+            <button class="btn btn-warning" id="btnGerarFixos" style="width:100%;margin-bottom:8px;">GERAR FIXOS PARA ESTA DATA</button>
+            <button class="btn btn-view" id="btnVerLista">VER LISTA DO DIA</button>
+            <button class="btn btn-purple" id="btnVerFixos" style="width:100%;margin-top:8px;">VER PACIENTES FIXOS</button>
+
+            <div id="listaConfirmacao">
+                <div class="search-box">
+                    <input type="text" id="inputBuscaLista" placeholder="🔍 Pesquisar na lista do dia...">
+                </div>
+                <div id="corpoLista"></div>
+                <button class="btn btn-print" id="btnGerarRelatorio">GERAR PLANILHA PARA IMPRESSÃO</button>
+            </div>
+
+            <div id="listaFixos">
+                <h4>Pacientes fixos cadastrados</h4>
+                <div id="corpoFixos"></div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: span 2;">
+            <h3>3. Busca Geral por Nome</h3>
+            <div class="form-row">
+                <div style="grid-column: span 2;">
+                    <label for="buscaGeral">Nome do paciente:</label>
+                    <input type="text" id="buscaGeral" placeholder="Digite parte do nome para buscar em todos os dias">
+                </div>
+            </div>
+            <button class="btn btn-view" id="btnBuscaGeral">BUSCAR GERAL</button>
+            <div id="resultadoBusca"></div>
+        </div>
+    </div>
+
+    <div id="relatorioArea"></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        query,
+        where,
+        updateDoc,
+        doc,
+        Timestamp,
+        onSnapshot,
+        getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+        authDomain: "agendamento-a11d3.firebaseapp.com",
+        projectId: "agendamento-a11d3",
+        storageBucket: "agendamento-a11d3.firebasestorage.app",
+        messagingSenderId: "31776903316",
+        appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const firestore = getFirestore(app);
+
+    const COLECAO_AGENDAMENTOS = 'agendamentos_hemodialise';
+    const COLECAO_FIXOS = 'pacientes_fixos_hemodialise';
+    const LIMITE_VAGAS = 14;
+
+    let db = [];
+    let fixos = [];
+    let dataAtual = '';
+    let unsubscribeAtual = null;
+    let unsubscribeFixos = null;
+    let listaAberta = false;
+    let fixosAberto = false;
+    let salvando = false;
+    let editandoId = null;
+    let editandoTipo = null; // 'agendamento' ou 'fixo'
+
+    const el = {
+        data: document.getElementById('data'),
+        paciente: document.getElementById('paciente'),
+        telefone: document.getElementById('telefone'),
+        horario: document.getElementById('horario'),
+        busca: document.getElementById('busca'),
+        destino: document.getElementById('destino'),
+        obs: document.getElementById('obs'),
+        acompanhante: document.getElementById('acompanhante'),
+        pacienteFixo: document.getElementById('pacienteFixo'),
+        areaDiasSemana: document.getElementById('areaDiasSemana'),
+        diasSemana: document.querySelectorAll('.diaSemana'),
+        btnSalvar: document.getElementById('btnSalvar'),
+        btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
+        btnGerarFixos: document.getElementById('btnGerarFixos'),
+        btnVerLista: document.getElementById('btnVerLista'),
+        btnVerFixos: document.getElementById('btnVerFixos'),
+        btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+        btnBuscaGeral: document.getElementById('btnBuscaGeral'),
+        inputBuscaLista: document.getElementById('inputBuscaLista'),
+        buscaGeral: document.getElementById('buscaGeral'),
+        statusMensagem: document.getElementById('statusMensagem'),
+        statusData: document.getElementById('statusData'),
+        vagasDia: document.getElementById('vagasDia'),
+        listaConfirmacao: document.getElementById('listaConfirmacao'),
+        corpoLista: document.getElementById('corpoLista'),
+        listaFixos: document.getElementById('listaFixos'),
+        corpoFixos: document.getElementById('corpoFixos'),
+        resultadoBusca: document.getElementById('resultadoBusca'),
+        relatorioArea: document.getElementById('relatorioArea')
+    };
+
+    function mostrarStatus(texto, tipo = 'ok', tempo = 4000) {
+        el.statusMensagem.textContent = texto;
+        el.statusMensagem.className = `status-box ${tipo === 'erro' ? 'status-erro' : tipo === 'info' ? 'status-info' : 'status-ok'}`;
+        el.statusMensagem.style.display = 'block';
+
+        if (tempo > 0) {
+            setTimeout(() => {
+                if (el.statusMensagem.textContent === texto) {
+                    el.statusMensagem.style.display = 'none';
+                }
+            }, tempo);
+        }
+    }
+
+    function limparCampos() {
+        el.paciente.value = '';
+        el.telefone.value = '';
+        el.horario.value = '';
+        el.busca.value = '';
+        el.destino.value = '';
+        el.obs.value = '';
+        el.acompanhante.checked = false;
+        el.pacienteFixo.checked = false;
+        el.diasSemana.forEach(chk => chk.checked = false);
+        atualizarVisibilidadeDias();
+    }
+
+    function atualizarModoEdicao() {
+        const emEdicao = !!editandoId;
+        el.btnSalvar.textContent = emEdicao ? 'SALVAR EDIÇÃO' : 'SALVAR';
+        el.btnCancelarEdicao.style.display = emEdicao ? 'block' : 'none';
+    }
+
+    function atualizarVisibilidadeDias() {
+        el.areaDiasSemana.classList.toggle('ativo', el.pacienteFixo.checked);
+    }
+
+    function normalizarTexto(txt) {
+        return (txt || '').trim().toUpperCase();
+    }
+
+    function pesoRegistro(item) {
+        return item.acompanhante === 'SIM' ? 2 : 1;
+    }
+
+    function nomeDiaSemana(numero) {
+        const nomes = {
+            1: 'Segunda',
+            2: 'Terça',
+            3: 'Quarta',
+            4: 'Quinta',
+            5: 'Sexta',
+            6: 'Sábado'
+        };
+        return nomes[numero] || '';
+    }
+
+    function diaSemanaDaData(dataIso) {
+        const [ano, mes, dia] = dataIso.split('-').map(Number);
+        const data = new Date(ano, mes - 1, dia);
+        return data.getDay(); // domingo=0, segunda=1...
+    }
+
+    function diasSelecionados() {
+        return Array.from(el.diasSemana)
+            .filter(chk => chk.checked)
+            .map(chk => Number(chk.value));
+    }
+
+    function ordenar(lista) {
+        return [...lista].sort((a, b) => {
+            const destinoA = normalizarTexto(a.destino);
+            const destinoB = normalizarTexto(b.destino);
+            if (destinoA !== destinoB) return destinoA.localeCompare(destinoB);
+
+            const buscaA = normalizarTexto(a.busca);
+            const buscaB = normalizarTexto(b.busca);
+            if (buscaA !== buscaB) return buscaA.localeCompare(buscaB);
+
+            if ((a.horario || '') !== (b.horario || '')) return (a.horario || '').localeCompare(b.horario || '');
+            return (a.paciente || '').localeCompare(b.paciente || '');
+        });
+    }
+
+    function renderizarPainel() {
+        if (!dataAtual) {
+            el.statusData.innerText = 'Selecione uma data';
+            el.vagasDia.innerText = `0 / ${LIMITE_VAGAS}`;
+            return;
+        }
+
+        el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
+        const ativosConfirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        const total = ativosConfirmados.reduce((s, item) => s + pesoRegistro(item), 0);
+        el.vagasDia.innerText = `${total} / ${LIMITE_VAGAS}`;
+    }
+
+    function renderizarLista() {
+        if (!listaAberta) return;
+
+        const busca = normalizarTexto(el.inputBuscaLista.value);
+        const ativos = ordenar(db.filter(i => i.status === 'ativo'));
+        const filtrados = ativos.filter(i => {
+            if (!busca) return true;
+            return normalizarTexto(i.paciente).includes(busca) || normalizarTexto(i.destino).includes(busca) || normalizarTexto(i.busca).includes(busca);
+        });
+
+        el.corpoLista.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            el.corpoLista.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente encontrado.</div>';
+            return;
+        }
+
+        for (const i of filtrados) {
+            const div = document.createElement('div');
+            div.className = 'item';
+
+            const main = document.createElement('div');
+            main.className = 'item-main';
+            main.innerHTML = `
+                <div class="nome-paciente">
+                    ${i.paciente || ''}
+                    ${i.origemFixoId ? '<span class="tag tag-fixo">FIXO</span>' : ''}
+                    ${i.acompanhante === 'SIM' ? '<span class="tag tag-acomp">+ACOMP</span>' : ''}
+                    ${(i.id || '').startsWith('tmp_') ? '<span class="tag tag-sync">SINCRONIZANDO</span>' : ''}
+                </div>
+                <div class="detalhes">
+                    Horário: ${i.horario || '-'} | Buscar: ${i.busca || '-'} | Destino: ${i.destino || '-'} | Tel: ${i.telefone || '-'}
+                    ${i.obs ? ' | Obs: ' + i.obs : ''}
+                </div>
+            `;
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.className = 'check-confirmar';
+            check.checked = !!i.confirmado;
+            check.addEventListener('change', () => confirmar(i.id, check.checked));
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicaoAgendamento(i.id));
+
+            const btnApagar = document.createElement('button');
+            btnApagar.className = 'btn btn-del';
+            btnApagar.textContent = 'Apagar';
+            btnApagar.addEventListener('click', () => excluirAgendamento(i.id));
+
+            div.appendChild(main);
+            div.appendChild(check);
+            div.appendChild(btnEditar);
+            div.appendChild(btnApagar);
+            el.corpoLista.appendChild(div);
+        }
+    }
+
+    function renderizarFixos() {
+        if (!fixosAberto) return;
+
+        const ativos = fixos.filter(i => i.status === 'ativo');
+        el.corpoFixos.innerHTML = '';
+
+        if (ativos.length === 0) {
+            el.corpoFixos.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente fixo cadastrado.</div>';
+            return;
+        }
+
+        for (const i of ativos) {
+            const dias = (i.diasSemana || []).map(nomeDiaSemana).join(', ');
+            const div = document.createElement('div');
+            div.className = 'item';
+
+            const main = document.createElement('div');
+            main.className = 'item-main';
+            main.innerHTML = `
+                <div class="nome-paciente">${i.paciente || ''} <span class="tag tag-fixo">FIXO</span></div>
+                <div class="detalhes">
+                    Dias: ${dias || '-'} | Horário: ${i.horario || '-'} | Buscar: ${i.busca || '-'} | Destino: ${i.destino || '-'} | Tel: ${i.telefone || '-'}
+                </div>
+            `;
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicaoFixo(i.id));
+
+            const btnApagar = document.createElement('button');
+            btnApagar.className = 'btn btn-del';
+            btnApagar.textContent = 'Apagar';
+            btnApagar.addEventListener('click', () => excluirFixo(i.id));
+
+            div.appendChild(main);
+            div.appendChild(btnEditar);
+            div.appendChild(btnApagar);
+            el.corpoFixos.appendChild(div);
+        }
+    }
+
+    function atualizarTela() {
+        atualizarModoEdicao();
+        renderizarPainel();
+        renderizarLista();
+        renderizarFixos();
+    }
+
+    function iniciarEscutaData(data) {
+        dataAtual = data;
+        db = [];
+        atualizarTela();
+
+        if (!data) return;
+
+        if (unsubscribeAtual) {
+            unsubscribeAtual();
+            unsubscribeAtual = null;
+        }
+
+        mostrarStatus('Carregando dados da data selecionada...', 'info', 1500);
+
+        const q = query(collection(firestore, COLECAO_AGENDAMENTOS), where('data', '==', data));
+
+        unsubscribeAtual = onSnapshot(q, (snapshot) => {
+            db = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            atualizarTela();
+        }, (erro) => {
+            console.error(erro);
+            mostrarStatus('Erro ao carregar dados: ' + erro.message, 'erro', 6000);
+        });
+    }
+
+    function iniciarEscutaFixos() {
+        if (unsubscribeFixos) unsubscribeFixos();
+
+        const q = query(collection(firestore, COLECAO_FIXOS), where('status', '==', 'ativo'));
+        unsubscribeFixos = onSnapshot(q, (snapshot) => {
+            fixos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderizarFixos();
+        }, (erro) => {
+            console.error(erro);
+            mostrarStatus('Erro ao carregar fixos: ' + erro.message, 'erro', 6000);
+        });
+    }
+
+    function dadosFormulario() {
+        return {
+            data: el.data.value,
+            paciente: normalizarTexto(el.paciente.value),
+            telefone: el.telefone.value.trim(),
+            horario: el.horario.value,
+            busca: normalizarTexto(el.busca.value),
+            destino: normalizarTexto(el.destino.value),
+            obs: el.obs.value.trim(),
+            acompanhante: el.acompanhante.checked ? 'SIM' : 'NÃO',
+            diasSemana: diasSelecionados()
+        };
+    }
+
+    function validarDados(dados) {
+        if (!dados.paciente) return 'Preencha o nome do paciente.';
+        if (!dados.horario) return 'Preencha o horário.';
+        if (!dados.busca) return 'Preencha onde buscar o paciente.';
+        if (!dados.destino) return 'Preencha o destino.';
+
+        if (!el.pacienteFixo.checked && !dados.data) {
+            return 'Preencha a data do transporte.';
+        }
+
+        if (el.pacienteFixo.checked && dados.diasSemana.length === 0) {
+            return 'Escolha pelo menos um dia da semana para paciente fixo.';
+        }
+
+        return null;
+    }
+
+    function totalConfirmadoSem(idIgnorar = null) {
+        return db
+            .filter(i => i.status === 'ativo' && i.confirmado && i.id !== idIgnorar)
+            .reduce((s, item) => s + pesoRegistro(item), 0);
+    }
+
+    async function salvar() {
+        if (salvando) return;
+
+        const dados = dadosFormulario();
+        const erroValidacao = validarDados(dados);
+        if (erroValidacao) {
+            alert(erroValidacao);
+            return;
+        }
+
+        salvando = true;
+        el.btnSalvar.classList.add('loading');
+        el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
+
+        try {
+            if (editandoId && editandoTipo === 'agendamento') {
+                await salvarEdicaoAgendamento(dados);
+            } else if (editandoId && editandoTipo === 'fixo') {
+                await salvarEdicaoFixo(dados);
+            } else if (el.pacienteFixo.checked) {
+                await salvarFixo(dados);
+            } else {
+                await salvarAgendamento(dados);
+            }
+        } catch (erro) {
+            console.error(erro);
+            alert('Erro ao salvar: ' + erro.message);
+            mostrarStatus('Erro ao salvar: ' + erro.message, 'erro', 6000);
+        } finally {
+            salvando = false;
+            el.btnSalvar.classList.remove('loading');
+            atualizarModoEdicao();
+        }
+    }
+
+    async function salvarAgendamento(dados) {
+        if (dataAtual !== dados.data) iniciarEscutaData(dados.data);
+
+        const temporario = {
+            id: 'tmp_' + Date.now(),
+            ...dados,
+            confirmado: true,
+            status: 'ativo'
+        };
+
+        const totalSeConfirmar = totalConfirmadoSem() + pesoRegistro(temporario);
+        if (totalSeConfirmar > LIMITE_VAGAS) {
+            alert(`Limite de ${LIMITE_VAGAS} vagas atingido para esta data.`);
+            return;
+        }
+
+        db.push(temporario);
+        atualizarTela();
+
+        await addDoc(collection(firestore, COLECAO_AGENDAMENTOS), {
+            ...dados,
+            confirmado: true,
+            fixo: false,
+            origemFixoId: null,
+            status: 'ativo',
+            criadoEm: Timestamp.now(),
+            excluidoEm: null,
+            motivoExclusao: null
+        });
+
+        limparCampos();
+        mostrarStatus('Agendamento salvo com sucesso.');
+    }
+
+    async function salvarFixo(dados) {
+        await addDoc(collection(firestore, COLECAO_FIXOS), {
+            paciente: dados.paciente,
+            telefone: dados.telefone,
+            horario: dados.horario,
+            busca: dados.busca,
+            destino: dados.destino,
+            obs: dados.obs,
+            acompanhante: dados.acompanhante,
+            diasSemana: dados.diasSemana,
+            status: 'ativo',
+            criadoEm: Timestamp.now(),
+            excluidoEm: null,
+            motivoExclusao: null
+        });
+
+        limparCampos();
+        mostrarStatus('Paciente fixo salvo com sucesso.');
+    }
+
+    async function salvarEdicaoAgendamento(dados) {
+        const item = db.find(i => i.id === editandoId);
+        if (!item) throw new Error('Registro não encontrado para editar.');
+
+        if (item.confirmado) {
+            const totalSeEditar = totalConfirmadoSem(editandoId) + (dados.acompanhante === 'SIM' ? 2 : 1);
+            if (totalSeEditar > LIMITE_VAGAS) {
+                alert(`Não dá para salvar. A data ficaria acima de ${LIMITE_VAGAS} vagas.`);
+                return;
+            }
+        }
+
+        await updateDoc(doc(firestore, COLECAO_AGENDAMENTOS, editandoId), {
+            data: dados.data,
+            paciente: dados.paciente,
+            telefone: dados.telefone,
+            horario: dados.horario,
+            busca: dados.busca,
+            destino: dados.destino,
+            obs: dados.obs,
+            acompanhante: dados.acompanhante,
+            editadoEm: Timestamp.now()
+        });
+
+        editandoId = null;
+        editandoTipo = null;
+        limparCampos();
+        mostrarStatus('Agendamento editado com sucesso.');
+
+        if (dataAtual !== dados.data) iniciarEscutaData(dados.data);
+    }
+
+    async function salvarEdicaoFixo(dados) {
+        await updateDoc(doc(firestore, COLECAO_FIXOS, editandoId), {
+            paciente: dados.paciente,
+            telefone: dados.telefone,
+            horario: dados.horario,
+            busca: dados.busca,
+            destino: dados.destino,
+            obs: dados.obs,
+            acompanhante: dados.acompanhante,
+            diasSemana: dados.diasSemana,
+            editadoEm: Timestamp.now()
+        });
+
+        editandoId = null;
+        editandoTipo = null;
+        limparCampos();
+        mostrarStatus('Paciente fixo editado com sucesso.');
+    }
+
+    function iniciarEdicaoAgendamento(id) {
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde a sincronização terminar antes de editar.');
+            return;
+        }
+
+        editandoId = id;
+        editandoTipo = 'agendamento';
+        el.data.value = item.data || '';
+        el.paciente.value = item.paciente || '';
+        el.telefone.value = item.telefone || '';
+        el.horario.value = item.horario || '';
+        el.busca.value = item.busca || '';
+        el.destino.value = item.destino || '';
+        el.obs.value = item.obs || '';
+        el.acompanhante.checked = item.acompanhante === 'SIM';
+        el.pacienteFixo.checked = false;
+        el.diasSemana.forEach(chk => chk.checked = false);
+        atualizarVisibilidadeDias();
+        atualizarModoEdicao();
+        mostrarStatus('Editando agendamento: ' + item.paciente, 'info', 2500);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function iniciarEdicaoFixo(id) {
+        const item = fixos.find(i => i.id === id);
+        if (!item) return;
+
+        editandoId = id;
+        editandoTipo = 'fixo';
+        el.data.value = '';
+        el.paciente.value = item.paciente || '';
+        el.telefone.value = item.telefone || '';
+        el.horario.value = item.horario || '';
+        el.busca.value = item.busca || '';
+        el.destino.value = item.destino || '';
+        el.obs.value = item.obs || '';
+        el.acompanhante.checked = item.acompanhante === 'SIM';
+        el.pacienteFixo.checked = true;
+        el.diasSemana.forEach(chk => chk.checked = (item.diasSemana || []).includes(Number(chk.value)));
+        atualizarVisibilidadeDias();
+        atualizarModoEdicao();
+        mostrarStatus('Editando paciente fixo: ' + item.paciente, 'info', 2500);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicao() {
+        editandoId = null;
+        editandoTipo = null;
+        limparCampos();
+        atualizarModoEdicao();
+        mostrarStatus('Edição cancelada.', 'info', 2000);
+    }
+
+    async function confirmar(id, valor) {
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde a sincronização terminar.');
+            atualizarTela();
+            return;
+        }
+
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+
+        if (valor) {
+            const totalSeConfirmar = totalConfirmadoSem(id) + pesoRegistro(item);
+            if (totalSeConfirmar > LIMITE_VAGAS) {
+                alert(`Limite de ${LIMITE_VAGAS} vagas atingido nesta data.`);
+                atualizarTela();
+                return;
+            }
+        }
+
+        item.confirmado = valor;
+        atualizarTela();
+
+        try {
+            await updateDoc(doc(firestore, COLECAO_AGENDAMENTOS, id), { confirmado: valor });
+        } catch (erro) {
+            item.confirmado = !valor;
+            atualizarTela();
+            alert('Erro ao confirmar: ' + erro.message);
+        }
+    }
+
+    async function excluirAgendamento(id) {
+        const motivo = prompt('Motivo da exclusão:');
+        if (motivo === null) return;
+
+        const item = db.find(i => i.id === id);
+        if (item) {
+            item.status = 'excluido';
+            atualizarTela();
+        }
+
+        await updateDoc(doc(firestore, COLECAO_AGENDAMENTOS, id), {
+            status: 'excluido',
+            excluidoEm: Timestamp.now(),
+            motivoExclusao: motivo.trim() || 'Sem motivo informado'
+        });
+        mostrarStatus('Agendamento excluído.');
+    }
+
+    async function excluirFixo(id) {
+        const motivo = prompt('Motivo da exclusão do paciente fixo:');
+        if (motivo === null) return;
+
+        await updateDoc(doc(firestore, COLECAO_FIXOS, id), {
+            status: 'excluido',
+            excluidoEm: Timestamp.now(),
+            motivoExclusao: motivo.trim() || 'Sem motivo informado'
+        });
+        mostrarStatus('Paciente fixo excluído.');
+    }
+
+    function abrirLista() {
+        if (!el.data.value) {
+            alert('Escolha a data primeiro.');
+            return;
+        }
+        listaAberta = true;
+        el.listaConfirmacao.style.display = 'block';
+        renderizarLista();
+    }
+
+    function abrirFixos() {
+        fixosAberto = true;
+        el.listaFixos.style.display = 'block';
+        renderizarFixos();
+    }
+
+    async function gerarFixosParaData() {
+        const data = el.data.value;
+        if (!data) {
+            alert('Escolha a data primeiro.');
+            return;
+        }
+
+        const dia = diaSemanaDaData(data);
+        if (dia === 0) {
+            alert('A data selecionada é domingo. Não há opção de domingo nos fixos.');
+            return;
+        }
+
+        const candidatos = fixos.filter(i => i.status === 'ativo' && (i.diasSemana || []).includes(dia));
+        if (candidatos.length === 0) {
+            alert('Nenhum paciente fixo cadastrado para este dia da semana.');
+            return;
+        }
+
+        if (dataAtual !== data) iniciarEscutaData(data);
+
+        let criados = 0;
+        let pulados = 0;
+        let totalAtual = db.filter(i => i.status === 'ativo' && i.confirmado).reduce((s, item) => s + pesoRegistro(item), 0);
+
+        for (const fixo of candidatos) {
+            const jaExiste = db.some(i => i.status === 'ativo' && i.origemFixoId === fixo.id && i.data === data);
+            if (jaExiste) {
+                pulados++;
+                continue;
+            }
+
+            const peso = pesoRegistro(fixo);
+            if (totalAtual + peso > LIMITE_VAGAS) {
+                pulados++;
+                continue;
+            }
+
+            await addDoc(collection(firestore, COLECAO_AGENDAMENTOS), {
+                data,
+                paciente: fixo.paciente,
+                telefone: fixo.telefone || '',
+                horario: fixo.horario || '',
+                busca: fixo.busca || '',
+                destino: fixo.destino || '',
+                obs: fixo.obs || '',
+                acompanhante: fixo.acompanhante || 'NÃO',
+                confirmado: true,
+                fixo: true,
+                origemFixoId: fixo.id,
+                status: 'ativo',
+                criadoEm: Timestamp.now(),
+                excluidoEm: null,
+                motivoExclusao: null
+            });
+
+            totalAtual += peso;
+            criados++;
+        }
+
+        mostrarStatus(`Fixos gerados: ${criados}. Pulados: ${pulados}.`, 'ok', 6000);
+    }
+
+    async function buscaGeral() {
+        const termo = normalizarTexto(el.buscaGeral.value);
+        if (termo.length < 2) {
+            alert('Digite pelo menos 2 letras.');
+            return;
+        }
+
+        el.resultadoBusca.style.display = 'block';
+        el.resultadoBusca.innerHTML = '<div style="padding:10px;color:#64748b">Buscando...</div>';
+
+        const snap = await getDocs(query(collection(firestore, COLECAO_AGENDAMENTOS), where('status', '==', 'ativo')));
+        const resultados = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(i => normalizarTexto(i.paciente).includes(termo))
+            .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+
+        if (resultados.length === 0) {
+            el.resultadoBusca.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum resultado encontrado.</div>';
+            return;
+        }
+
+        el.resultadoBusca.innerHTML = '';
+        for (const i of resultados) {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `
+                <div class="item-main">
+                    <div class="nome-paciente">${i.paciente || ''}</div>
+                    <div class="detalhes">
+                        Data: ${(i.data || '').split('-').reverse().join('/')} | Horário: ${i.horario || '-'} | Buscar: ${i.busca || '-'} | Destino: ${i.destino || '-'}
+                    </div>
+                </div>
+            `;
+
+            const btnAbrir = document.createElement('button');
+            btnAbrir.className = 'btn btn-small btn-purple';
+            btnAbrir.textContent = 'Abrir data';
+            btnAbrir.addEventListener('click', () => {
+                el.data.value = i.data;
+                iniciarEscutaData(i.data);
+                listaAberta = true;
+                el.listaConfirmacao.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            div.appendChild(btnAbrir);
+            el.resultadoBusca.appendChild(div);
+        }
+    }
+
+    function tabela(lista) {
+        let html = `<table>
+            <thead>
+                <tr>
+                    <th>Horário</th>
+                    <th>Paciente</th>
+                    <th>Acomp.</th>
+                    <th>Telefone</th>
+                    <th>Onde buscar</th>
+                    <th>Destino</th>
+                    <th>Observações</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        for (const i of lista) {
+            html += `<tr>
+                <td><b>${i.horario || ''}</b></td>
+                <td>${i.paciente || ''}</td>
+                <td style="text-align:center">${i.acompanhante || 'NÃO'}</td>
+                <td>${i.telefone || ''}</td>
+                <td>${i.busca || ''}</td>
+                <td>${i.destino || ''}</td>
+                <td>${i.obs || ''}</td>
+            </tr>`;
+        }
+
+        return html + '</tbody></table>';
+    }
+
+    function gerarRelatorio() {
+        if (!dataAtual) {
+            alert('Escolha a data primeiro.');
+            return;
+        }
+
+        const confirmados = ordenar(db.filter(i => i.status === 'ativo' && i.confirmado));
+        if (confirmados.length === 0) {
+            alert('Nenhum paciente confirmado nesta data.');
+            return;
+        }
+
+        const dataBr = dataAtual.split('-').reverse().join('/');
+        const total = confirmados.reduce((s, item) => s + pesoRegistro(item), 0);
+        const tabelaHtml = tabela(confirmados);
+
+        let html = '';
+        for (let via = 1; via <= 2; via++) {
+            html += `<div class="via-section">
+                <div class="header-print">
+                    <h2 style="margin:0">HEMODIÁLISE - ${via}ª VIA</h2>
+                    <h2 style="margin:0">DATA: ${dataBr}</h2>
+                </div>
+                <div class="assinatura-linha">
+                    <div>Motorista: __________________________________</div>
+                    <div>Veículo/Van: _______________________________</div>
+                </div>
+                <div><strong>OCUPAÇÃO:</strong> ${total}/${LIMITE_VAGAS}</div>
+                ${tabelaHtml}
+            </div>`;
+        }
+
+        el.relatorioArea.innerHTML = html;
+        setTimeout(() => window.print(), 300);
+    }
+
+    el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
+    el.pacienteFixo.addEventListener('change', atualizarVisibilidadeDias);
+    el.btnSalvar.addEventListener('click', salvar);
+    el.btnCancelarEdicao.addEventListener('click', cancelarEdicao);
+    el.btnGerarFixos.addEventListener('click', gerarFixosParaData);
+    el.btnVerLista.addEventListener('click', abrirLista);
+    el.btnVerFixos.addEventListener('click', abrirFixos);
+    el.inputBuscaLista.addEventListener('input', renderizarLista);
+    el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+    el.btnBuscaGeral.addEventListener('click', buscaGeral);
+
+    iniciarEscutaFixos();
+    atualizarVisibilidadeDias();
+    atualizarModoEdicao();
+    renderizarPainel();
+</script>
+</body>
+</html>
