@@ -43,6 +43,19 @@
         .status-erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
         .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
         .loading { opacity: 0.7; pointer-events: none; }
+
+        .busca-geral-card { margin-top: 20px; }
+        .busca-geral-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 12px; }
+        .btn-search { background: #0f766e; padding-left: 18px; padding-right: 18px; }
+        .resultado-geral { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; display: flex; align-items: center; gap: 10px; }
+        .resultado-info { flex: 1; }
+        .resultado-nome { font-weight: 700; text-transform: uppercase; color: #0f172a; }
+        .resultado-meta { font-size: 13px; color: #475569; margin-top: 3px; }
+        .editando-banner { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: 700; display: none; }
+        @media (max-width: 700px) {
+            .busca-geral-actions { grid-template-columns: 1fr; }
+            .resultado-geral { align-items: flex-start; flex-direction: column; }
+        }
         @media print {
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
@@ -65,6 +78,7 @@
     <div class="main-grid no-print">
         <div class="card">
             <h3>1. Cadastrar Paciente</h3>
+            <div id="editandoBanner" class="editando-banner"></div>
             <div class="form-row">
                 <div style="grid-column: span 2;">
                     <label for="data">Data da Viagem:</label>
@@ -133,6 +147,15 @@
         </div>
     </div>
 
+    <div class="card no-print busca-geral-card">
+        <h3>3. Busca Geral por Nome</h3>
+        <div class="busca-geral-actions">
+            <input type="text" id="inputBuscaGeral" placeholder="Digite parte do nome para procurar em todos os dias...">
+            <button class="btn btn-search" id="btnBuscaGeral">BUSCAR</button>
+        </div>
+        <div id="resultadoBuscaGeral" style="font-size:14px;color:#475569;">Digite um nome e clique em buscar.</div>
+    </div>
+
     <div id="relatorioArea"></div>
 </div>
 
@@ -147,7 +170,8 @@
         updateDoc,
         doc,
         Timestamp,
-        onSnapshot
+        onSnapshot,
+        getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -172,6 +196,7 @@
     let listaAberta = false;
     let salvando = false;
     let editandoId = null;
+    let editandoRegistro = null;
 
     const el = {
         data: document.getElementById('data'),
@@ -187,6 +212,10 @@
         btnVerLista: document.getElementById('btnVerLista'),
         btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
         inputBusca: document.getElementById('inputBusca'),
+        inputBuscaGeral: document.getElementById('inputBuscaGeral'),
+        btnBuscaGeral: document.getElementById('btnBuscaGeral'),
+        resultadoBuscaGeral: document.getElementById('resultadoBuscaGeral'),
+        editandoBanner: document.getElementById('editandoBanner'),
         statusMensagem: document.getElementById('statusMensagem'),
         statusData: document.getElementById('statusData'),
         vManha: document.getElementById('vManha'),
@@ -223,17 +252,33 @@
         const emEdicao = !!editandoId;
         el.btnSalvar.textContent = emEdicao ? 'SALVAR EDIÇÃO' : 'SALVAR AGENDAMENTO';
         el.btnCancelarEdicao.style.display = emEdicao ? 'block' : 'none';
+
+        if (emEdicao && editandoRegistro) {
+            const dataBr = (editandoRegistro.data || '').split('-').reverse().join('/');
+            el.editandoBanner.textContent = `EDITANDO: ${editandoRegistro.paciente || ''} | Data atual: ${dataBr || 'sem data'}`;
+            el.editandoBanner.style.display = 'block';
+        } else {
+            el.editandoBanner.textContent = '';
+            el.editandoBanner.style.display = 'none';
+        }
     }
 
     function iniciarEdicao(id) {
         const item = db.find(i => i.id === id);
         if (!item) return;
-        if ((id || '').startsWith('tmp_')) {
+        iniciarEdicaoPorRegistro(item);
+    }
+
+    function iniciarEdicaoPorRegistro(item) {
+        if (!item) return;
+        if ((item.id || '').startsWith('tmp_')) {
             alert('Aguarde a sincronização terminar antes de editar.');
             return;
         }
 
-        editandoId = id;
+        editandoId = item.id;
+        editandoRegistro = { ...item };
+
         el.data.value = item.data || '';
         el.paciente.value = item.paciente || '';
         el.telefone.value = item.telefone || '';
@@ -242,6 +287,7 @@
         el.obs.value = item.obs || '';
         el.acompanhante.checked = item.acompanhante === 'SIM';
         el.londrina.checked = !!item.isLondrina;
+
         atualizarModoEdicao();
         mostrarStatus('Editando paciente: ' + (item.paciente || ''), 'info', 2500);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -249,6 +295,7 @@
 
     function cancelarEdicao() {
         editandoId = null;
+        editandoRegistro = null;
         limparCampos();
         atualizarModoEdicao();
         mostrarStatus('Edição cancelada.', 'info', 2000);
@@ -260,6 +307,25 @@
 
     function isTurnoManha(horario) {
         return horario <= CORTE_ONIBUS;
+    }
+
+    async function buscarAtivosPorData(data) {
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('data', '==', data),
+            where('status', '==', 'ativo')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    async function buscarAtivosGerais() {
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('status', '==', 'ativo')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
     function normalizarLugar(lugar) {
@@ -358,7 +424,7 @@
 
     function atualizarTela() {
         atualizarModoEdicao();
-    renderizarPainel();
+        renderizarPainel();
         renderizarLista();
     }
 
@@ -407,14 +473,28 @@
             return;
         }
 
-        if (dataAtual !== data) {
-            iniciarEscutaData(data);
+        let ativosDaData = [];
+        try {
+            ativosDaData = await buscarAtivosPorData(data);
+        } catch (erro) {
+            console.error(erro);
+            alert('Erro ao verificar dados da data: ' + erro.message);
+            return;
         }
 
-        const ativos = db.filter(i => i.status === 'ativo');
-        const repetido = ativos.find(i => i.paciente === paciente && i.id !== editandoId);
-        if (repetido) {
-            alert('ESTE PACIENTE JÁ ESTÁ CADASTRADO!');
+        // Regra de duplicidade:
+        // A mesma pessoa pode estar cadastrada no mesmo dia somente se for em ônibus diferente.
+        // Exemplo permitido: uma vez no ônibus 5H e outra no ônibus 10H.
+        // Exemplo bloqueado: duas vezes no ônibus 5H ou duas vezes no ônibus 10H.
+        const repetidoMesmoOnibus = ativosDaData.find(i =>
+            i.paciente === paciente &&
+            i.id !== editandoId &&
+            isTurnoManha(i.horario) === isTurnoManha(horario)
+        );
+
+        if (repetidoMesmoOnibus) {
+            const nomeOnibus = isTurnoManha(horario) ? 'ÔNIBUS 5H' : 'ÔNIBUS 10H';
+            alert(`ESTE PACIENTE JÁ ESTÁ CADASTRADO NESTE MESMO ÔNIBUS (${nomeOnibus})!`);
             return;
         }
 
@@ -423,7 +503,9 @@
         el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
 
         if (editandoId) {
-            const itemOriginal = db.find(i => i.id === editandoId);
+            const itemNaTela = db.find(i => i.id === editandoId);
+            const itemOriginal = itemNaTela || editandoRegistro;
+
             if (!itemOriginal) {
                 salvando = false;
                 el.btnSalvar.classList.remove('loading');
@@ -433,25 +515,28 @@
             }
 
             const backup = { ...itemOriginal };
-            itemOriginal.data = data;
-            itemOriginal.paciente = paciente;
-            itemOriginal.acompanhante = temAcomp ? 'SIM' : 'NÃO';
-            itemOriginal.telefone = telefone;
-            itemOriginal.lugar = lugar;
-            itemOriginal.horario = horario;
-            itemOriginal.obs = obs;
-            itemOriginal.isLondrina = isLondrina;
+            const editado = {
+                ...itemOriginal,
+                data,
+                paciente,
+                acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                telefone,
+                lugar,
+                horario,
+                obs,
+                isLondrina
+            };
 
-            if (itemOriginal.confirmado) {
-                const confirmadosMesmoTurno = db
+            if (editado.confirmado) {
+                const confirmadosMesmoTurno = ativosDaData
                     .filter(i => i.status === 'ativo' && i.confirmado && i.id !== editandoId)
                     .filter(i => isTurnoManha(i.horario) === isTurnoManha(horario))
                     .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+
                 const limiteTurno = isTurnoManha(horario) ? LIMITE_MANHA : LIMITE_TARDE;
-                const totalSeEditar = confirmadosMesmoTurno + pesoRegistro(itemOriginal);
+                const totalSeEditar = confirmadosMesmoTurno + pesoRegistro(editado);
+
                 if (totalSeEditar > limiteTurno) {
-                    Object.assign(itemOriginal, backup);
-                    atualizarTela();
                     salvando = false;
                     el.btnSalvar.classList.remove('loading');
                     atualizarModoEdicao();
@@ -460,7 +545,10 @@
                 }
             }
 
-            atualizarTela();
+            if (itemNaTela) {
+                Object.assign(itemNaTela, editado);
+                atualizarTela();
+            }
 
             try {
                 await updateDoc(doc(firestore, 'agendamentos_onibus', editandoId), {
@@ -471,18 +559,27 @@
                     lugar,
                     horario,
                     obs,
-                    isLondrina
+                    isLondrina,
+                    editadoEm: Timestamp.now()
                 });
 
+                const novaData = data;
                 editandoId = null;
+                editandoRegistro = null;
                 limparCampos();
                 atualizarModoEdicao();
                 mostrarStatus('Paciente editado com sucesso.');
+
+                if (dataAtual !== novaData) {
+                    el.data.value = novaData;
+                    iniciarEscutaData(novaData);
+                }
             } catch (erro) {
                 console.error(erro);
-                const idx = db.findIndex(i => i.id === backup.id);
-                if (idx >= 0) db[idx] = backup;
-                atualizarTela();
+                if (itemNaTela) {
+                    Object.assign(itemNaTela, backup);
+                    atualizarTela();
+                }
                 alert('Erro ao editar: ' + erro.message);
                 mostrarStatus('Erro ao editar: ' + erro.message, 'erro', 6000);
             } finally {
@@ -491,6 +588,10 @@
                 atualizarModoEdicao();
             }
             return;
+        }
+
+        if (dataAtual !== data) {
+            iniciarEscutaData(data);
         }
 
         const temporario = {
@@ -511,7 +612,7 @@
         atualizarTela();
 
         try {
-            await addDoc(collection(firestore, 'agendamentos_onibus'), {
+            const docRef = await addDoc(collection(firestore, 'agendamentos_onibus'), {
                 data,
                 paciente,
                 acompanhante: temAcomp ? 'SIM' : 'NÃO',
@@ -526,6 +627,9 @@
                 excluidoEm: null,
                 motivoExclusao: null
             });
+
+            const tempItem = db.find(i => i.id === temporario.id);
+            if (tempItem) tempItem.id = docRef.id;
 
             limparCampos();
             mostrarStatus('Agendamento salvo com sucesso.');
@@ -597,6 +701,11 @@
     }
 
     async function excluir(id) {
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde alguns segundos. O cadastro ainda está sincronizando.');
+            return;
+        }
+
         const motivo = prompt('Motivo da exclusão:');
         if (motivo === null) return;
 
@@ -626,6 +735,85 @@
             }
             alert('Erro ao excluir: ' + erro.message);
             mostrarStatus('Erro ao excluir paciente.', 'erro', 6000);
+        }
+    }
+
+    function formatarDataBr(data) {
+        return data ? data.split('-').reverse().join('/') : '';
+    }
+
+    async function buscarGeralPorNome() {
+        const termo = el.inputBuscaGeral.value.trim().toUpperCase();
+        if (termo.length < 2) {
+            alert('Digite pelo menos 2 letras do nome.');
+            return;
+        }
+
+        el.resultadoBuscaGeral.innerHTML = 'Buscando...';
+
+        try {
+            const todos = await buscarAtivosGerais();
+            const encontrados = todos
+                .filter(i => (i.paciente || '').toUpperCase().includes(termo))
+                .sort((a, b) => {
+                    if ((a.data || '') !== (b.data || '')) return (a.data || '').localeCompare(b.data || '');
+                    return ordenar([a, b])[0].id === a.id ? -1 : 1;
+                });
+
+            renderizarBuscaGeral(encontrados);
+        } catch (erro) {
+            console.error(erro);
+            el.resultadoBuscaGeral.innerHTML = '<span style="color:#991b1b">Erro na busca: ' + erro.message + '</span>';
+        }
+    }
+
+    function renderizarBuscaGeral(lista) {
+        el.resultadoBuscaGeral.innerHTML = '';
+
+        if (lista.length === 0) {
+            el.resultadoBuscaGeral.innerHTML = 'Nenhum agendamento ativo encontrado com esse nome.';
+            return;
+        }
+
+        for (const item of lista) {
+            const div = document.createElement('div');
+            div.className = 'resultado-geral';
+
+            const info = document.createElement('div');
+            info.className = 'resultado-info';
+
+            const turno = isTurnoManha(item.horario) ? 'Ônibus 5H' : 'Ônibus 10H';
+            info.innerHTML = `
+                <div class="resultado-nome">${item.paciente || ''}</div>
+                <div class="resultado-meta">
+                    Data: <b>${formatarDataBr(item.data)}</b> | Horário: <b>${item.horario || ''}</b> | ${turno} | Destino: <b>${item.isLondrina ? '[LONDRINA] ' : ''}${item.lugar || ''}</b>
+                    ${item.acompanhante === 'SIM' ? ' | + Acompanhante' : ''}
+                    ${item.confirmado ? ' | CONFIRMADO' : ' | NÃO CONFIRMADO'}
+                </div>
+            `;
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicaoPorRegistro(item));
+
+            const btnAbrirData = document.createElement('button');
+            btnAbrirData.className = 'btn btn-view';
+            btnAbrirData.style.width = 'auto';
+            btnAbrirData.style.marginTop = '0';
+            btnAbrirData.textContent = 'Abrir data';
+            btnAbrirData.addEventListener('click', () => {
+                el.data.value = item.data || '';
+                iniciarEscutaData(item.data || '');
+                listaAberta = true;
+                el.listaConfirmacao.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            div.appendChild(info);
+            div.appendChild(btnAbrirData);
+            div.appendChild(btnEditar);
+            el.resultadoBuscaGeral.appendChild(div);
         }
     }
 
@@ -692,6 +880,10 @@
     el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
     el.inputBusca.addEventListener('input', filtrarNomes);
     el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+    el.btnBuscaGeral.addEventListener('click', buscarGeralPorNome);
+    el.inputBuscaGeral.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Enter') buscarGeralPorNome();
+    });
 
     atualizarModoEdicao();
     renderizarPainel();
