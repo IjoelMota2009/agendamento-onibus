@@ -118,6 +118,43 @@
             display: none;
         }
 
+        .btn-config {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+            float: right;
+            margin-top: -6px;
+        }
+
+        .config-panel {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            clear: both;
+        }
+
+        .config-panel h4 {
+            margin: 0 0 10px 0;
+            color: #166534;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-config-save {
+            background: #166534;
+            width: 100%;
+            margin-top: 10px;
+        }
+
         .btn-view {
             background: #4b5563;
             width: 100%;
@@ -423,6 +460,22 @@
 
             <div class="card">
                 <h3>2. Controle do Dia</h3>
+                <button class="btn btn-config" id="btnAbrirConfig" type="button">⚙️ Configurações</button>
+
+                <div class="config-panel" id="painelConfig">
+                    <h4>Configuração do Carro</h4>
+                    <div class="config-grid">
+                        <div>
+                            <label for="configVagasTotal">Vagas totais do dia:</label>
+                            <input type="number" id="configVagasTotal" min="1" value="20">
+                        </div>
+                        <div>
+                            <label for="configCapacidadeCarro">Capacidade por carro:</label>
+                            <input type="number" id="configCapacidadeCarro" min="1" value="4">
+                        </div>
+                    </div>
+                    <button class="btn btn-config-save" id="btnSalvarConfig" type="button">SALVAR CONFIGURAÇÃO</button>
+                </div>
 
                 <div id="statusData" style="text-align: center; font-weight: bold; margin-bottom: 15px; color: var(--primary);">
                     Selecione uma data
@@ -460,6 +513,7 @@
             where,
             updateDoc,
             doc,
+            setDoc,
             Timestamp,
             onSnapshot
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -481,7 +535,11 @@
 
         // Coleção separada do sistema de ônibus.
         const COLECAO = 'agendamentos_carro';
-        const LIMITE_CARRO = 20;
+        const COLECAO_CONFIG = 'configuracoes';
+        const DOC_CONFIG_CARRO = 'carro';
+
+        let limiteCarro = 20;
+        let capacidadePorCarro = 4;
 
         // =====================================================
         // ESTADO DA TELA
@@ -514,6 +572,11 @@
             statusMensagem: document.getElementById('statusMensagem'),
             statusData: document.getElementById('statusData'),
             vCarro: document.getElementById('vCarro'),
+            btnAbrirConfig: document.getElementById('btnAbrirConfig'),
+            painelConfig: document.getElementById('painelConfig'),
+            configVagasTotal: document.getElementById('configVagasTotal'),
+            configCapacidadeCarro: document.getElementById('configCapacidadeCarro'),
+            btnSalvarConfig: document.getElementById('btnSalvarConfig'),
             listaConfirmacao: document.getElementById('listaConfirmacao'),
             corpoLista: document.getElementById('corpoLista'),
             relatorioArea: document.getElementById('relatorioArea'),
@@ -592,7 +655,7 @@
 
         function tentarAdicionarNoCarro(carro, item) {
             const total = vagasUsadas(carro.pacientes) + pesoVagas(item);
-            if (total > 4) return false;
+            if (total > capacidadePorCarro) return false;
             carro.pacientes.push(item);
             return true;
         }
@@ -651,7 +714,7 @@
                 let unido = false;
 
                 for (const destino of compactados) {
-                    const sobra = 4 - vagasUsadas(destino.pacientes);
+                    const sobra = capacidadePorCarro - vagasUsadas(destino.pacientes);
                     const pesoCarro = vagasUsadas(carro.pacientes);
 
                     if (pesoCarro > sobra) continue;
@@ -679,12 +742,12 @@
         function renderizarPainel() {
             if (!dataAtual) {
                 el.statusData.innerText = 'Selecione uma data';
-                el.vCarro.innerText = `0 / ${LIMITE_CARRO}`;
+                el.vCarro.innerText = `0 / ${limiteCarro}`;
                 return;
             }
 
             el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
-            el.vCarro.innerText = `${contarConfirmados()} / ${LIMITE_CARRO}`;
+            el.vCarro.innerText = `${contarConfirmados()} / ${limiteCarro}`;
         }
 
         function renderizarLista() {
@@ -760,6 +823,66 @@
         function atualizarTela() {
             renderizarPainel();
             renderizarLista();
+        }
+
+
+        // =====================================================
+        // CONFIGURAÇÕES DO CARRO
+        // =====================================================
+        function aplicarConfiguracaoNaTela() {
+            el.configVagasTotal.value = limiteCarro;
+            el.configCapacidadeCarro.value = capacidadePorCarro;
+            atualizarTela();
+        }
+
+        function iniciarEscutaConfiguracao() {
+            onSnapshot(
+                doc(firestore, COLECAO_CONFIG, DOC_CONFIG_CARRO),
+                snapshot => {
+                    if (snapshot.exists()) {
+                        const config = snapshot.data();
+                        limiteCarro = Number(config.vagasTotal) || 20;
+                        capacidadePorCarro = Number(config.capacidadeCarro) || 4;
+                    } else {
+                        limiteCarro = 20;
+                        capacidadePorCarro = 4;
+                    }
+                    aplicarConfiguracaoNaTela();
+                },
+                erro => {
+                    console.error(erro);
+                    mostrarStatus('Erro ao carregar configurações: ' + erro.message, 'erro', 6000);
+                }
+            );
+        }
+
+        function alternarPainelConfiguracao() {
+            el.painelConfig.style.display = el.painelConfig.style.display === 'block' ? 'none' : 'block';
+        }
+
+        async function salvarConfiguracao() {
+            const novasVagas = Number(el.configVagasTotal.value);
+            const novaCapacidade = Number(el.configCapacidadeCarro.value);
+
+            if (!novasVagas || novasVagas < 1 || !novaCapacidade || novaCapacidade < 1) {
+                alert('Informe valores válidos para as configurações.');
+                return;
+            }
+
+            try {
+                await setDoc(doc(firestore, COLECAO_CONFIG, DOC_CONFIG_CARRO), {
+                    vagasTotal: novasVagas,
+                    capacidadeCarro: novaCapacidade,
+                    atualizadoEm: Timestamp.now()
+                }, { merge: true });
+
+                mostrarStatus('Configuração salva com sucesso.');
+                el.painelConfig.style.display = 'none';
+            } catch (erro) {
+                console.error(erro);
+                alert('Erro ao salvar configuração: ' + erro.message);
+                mostrarStatus('Erro ao salvar configuração.', 'erro', 6000);
+            }
         }
 
         // =====================================================
@@ -869,8 +992,8 @@
                 let confirmado = true;
                 const confirmados = contarConfirmados();
 
-                if (confirmados >= LIMITE_CARRO) {
-                    const continuar = confirm('As 20 vagas confirmadas já estão preenchidas. Salvar como DESMARCADO?');
+                if (confirmados >= limiteCarro) {
+                    const continuar = confirm('As vagas confirmadas já estão preenchidas. Salvar como DESMARCADO?');
                     if (!continuar) return;
                     confirmado = false;
                 }
@@ -942,8 +1065,8 @@
 
             const novoValor = !item.confirmado;
 
-            if (novoValor && contarConfirmados() >= LIMITE_CARRO) {
-                alert('Limite de 20 vagas confirmadas atingido.');
+            if (novoValor && contarConfirmados() >= limiteCarro) {
+                alert('Limite de ' + limiteCarro + ' vagas confirmadas atingido.');
                 return;
             }
 
@@ -1073,7 +1196,7 @@
                             </div>
                         </div>
                         <div style="text-align:right;font-size:12px">
-                            <b>Vagas:</b> ${vagas}/4<br>
+                            <b>Vagas:</b> ${vagas}/${capacidadePorCarro}<br>
                             <b>Destino(s):</b> ${destinos || 'A DEFINIR'}
                         </div>
                     </div>
@@ -1091,10 +1214,10 @@
                         <div>
                             <h2 style="margin:0">${via} - DATA: ${dataBr} - CARROS</h2>
                             <div style="font-size:13px;margin-top:4px">
-                                Separado automaticamente por destino, capacidade de 4 vagas e necessidade de carro baixo.
+                                Separado automaticamente por destino, capacidade configurada por carro e necessidade de carro baixo.
                             </div>
                         </div>
-                        <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${LIMITE_CARRO}</h2>
+                        <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${limiteCarro}</h2>
                     </div>
                     ${blocos}
                 </div>
@@ -1134,7 +1257,10 @@
         el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
         el.inputBusca.addEventListener('input', renderizarLista);
         el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+        el.btnAbrirConfig.addEventListener('click', alternarPainelConfiguracao);
+        el.btnSalvarConfig.addEventListener('click', salvarConfiguracao);
 
+        iniciarEscutaConfiguracao();
         renderizarPainel();
     </script>
 </body>
