@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil;
+    }
+
+    function usuarioAtivo() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true;
+    }
+
+    function isMaster() {
+      return usuarioAtivo() && perfil() == 'master';
+    }
+
+    function isAdminOuMaster() {
+      return usuarioAtivo() && (perfil() == 'master' || perfil() == 'admin');
+    }
+
+    match /usuarios/{userId} {
+      allow read: if usuarioAtivo();
+      allow create, delete: if isMaster();
+      allow update: if isMaster()
+        || (usuarioAtivo()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['precisaTrocarSenha', 'senhaAlteradaEm'])
+          && request.resource.data.precisaTrocarSenha == false);
+    }
+
+    match /configuracoes/{docId} {
+      allow read: if usuarioAtivo();
+      allow write: if isAdminOuMaster();
+    }
+
+    match /logs/{logId} {
+      allow create: if usuarioAtivo();
+      allow read: if isAdminOuMaster();
+      allow update, delete: if false;
+    }
+
+    match /agendamentos_onibus/{docId} {
+      allow read, create, update: if usuarioAtivo();
+      allow delete: if false;
+    }
+
+    match /agendamentos_carro/{docId} {
+      allow read, create, update: if usuarioAtivo();
+      allow delete: if false;
+    }
+
+    match /agendamentos_hemodialise/{docId} {
+      allow read, create, update: if usuarioAtivo();
+      allow delete: if false;
+    }
+
+    match /pacientes_fixos_hemodialise/{docId} {
+      allow read, create, update: if usuarioAtivo();
+      allow delete: if false;
+    }
+  }
+}

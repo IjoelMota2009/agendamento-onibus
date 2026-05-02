@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Geral - Transporte Saúde</title>
+  <style>
+    :root { --azul:#0284c7; --verde:#16a34a; --roxo:#7c3aed; --escuro:#1a1a1a; --bg:#f4f7f6; --texto:#1f2937; }
+    body { font-family:'Segoe UI',sans-serif; background:var(--bg); margin:0; padding:20px; color:var(--texto); }
+    .container { max-width:1150px; margin:auto; }
+    .header { background:var(--escuro); color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:20px; }
+    .header a { color:#ddd; text-decoration:none; font-weight:bold; font-size:14px; }
+    .card { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:20px; }
+    .topo-controle { display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:end; }
+    label { font-weight:700; font-size:14px; }
+    input { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; }
+    button, .btn { border:none; border-radius:7px; padding:11px 14px; color:white; font-weight:800; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-load { background:#334155; }
+    .btn-print { background:#0f766e; }
+    .resumo-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:18px; }
+    .box { border-radius:12px; padding:18px; color:white; min-height:120px; }
+    .box h2 { margin:0 0 8px; font-size:20px; }
+    .numero { font-size:34px; font-weight:900; display:block; margin-top:4px; }
+    .azul { background:var(--azul); } .verde { background:var(--verde); } .roxo { background:var(--roxo); }
+    .detalhes { margin-top:12px; font-size:14px; line-height:1.45; }
+    .tabela-wrap { overflow:auto; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td { border:1px solid #e2e8f0; padding:9px; text-align:left; font-size:14px; }
+    th { background:#f8fafc; color:#334155; }
+    .status { margin-top:10px; padding:10px; border-radius:6px; display:none; }
+    .info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .erro { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    @media(max-width:850px){ .topo-controle,.resumo-grid{ grid-template-columns:1fr; } }
+    @media print { .no-print { display:none!important; } body{background:white;padding:0;} .card{box-shadow:none;border:1px solid #ddd;} }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header no-print">
+    <h1>Painel Geral do Dia</h1>
+    <a href="index.html">← Voltar ao menu</a>
+  </div>
+
+  <div class="card no-print">
+    <div class="topo-controle">
+      <div>
+        <label for="dataPainel">Data para visualizar:</label>
+        <input type="date" id="dataPainel">
+      </div>
+      <button class="btn-load" id="btnCarregar">CARREGAR PAINEL</button>
+      <button class="btn-print" id="btnImprimir">IMPRIMIR</button>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="tituloData">Resumo do dia</h2>
+    <div class="resumo-grid">
+      <div class="box azul">
+        <h2>Ônibus</h2>
+        <span class="numero" id="onibusTotal">0</span>
+        <div class="detalhes" id="onibusDetalhes">Sem dados carregados.</div>
+      </div>
+      <div class="box verde">
+        <h2>Carro</h2>
+        <span class="numero" id="carroTotal">0</span>
+        <div class="detalhes" id="carroDetalhes">Sem dados carregados.</div>
+      </div>
+      <div class="box roxo">
+        <h2>Hemodiálise</h2>
+        <span class="numero" id="hemoTotal">0</span>
+        <div class="detalhes" id="hemoDetalhes">Sem dados carregados.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Detalhamento por veículo/módulo</h2>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Módulo</th><th>Veículo/Viagem</th><th>Pacientes</th><th>Pessoas/Vagas</th><th>Observação</th></tr></thead>
+        <tbody id="corpoTabela"><tr><td colspan="5">Carregue uma data.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey:"AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY", authDomain:"agendamento-a11d3.firebaseapp.com", projectId:"agendamento-a11d3", storageBucket:"agendamento-a11d3.firebasestorage.app", messagingSenderId:"31776903316", appId:"1:31776903316:web:73b72839fe54ce0d04a481" };
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let usuarioAtual = null;
+let perfilAtual = '';
+let configCarro = { vagasTotal:20, capacidadeCarro:4 };
+let configHemo = { limiteVagas:14 };
+let configOnibus = { limiteManha:32, limiteTarde:28 };
+
+const el = {
+  data: document.getElementById('dataPainel'), status: document.getElementById('status'), tituloData: document.getElementById('tituloData'),
+  onibusTotal: document.getElementById('onibusTotal'), onibusDetalhes: document.getElementById('onibusDetalhes'),
+  carroTotal: document.getElementById('carroTotal'), carroDetalhes: document.getElementById('carroDetalhes'),
+  hemoTotal: document.getElementById('hemoTotal'), hemoDetalhes: document.getElementById('hemoDetalhes'), corpoTabela: document.getElementById('corpoTabela'),
+  btnCarregar: document.getElementById('btnCarregar'), btnImprimir: document.getElementById('btnImprimir')
+};
+
+function mostrarStatus(txt, tipo='info') { el.status.textContent = txt; el.status.className = 'status ' + tipo; el.status.style.display = 'block'; }
+function esconderStatus(){ el.status.style.display = 'none'; }
+function hojeISO(){ return new Date().toISOString().slice(0,10); }
+function dataBR(d){ return d ? d.split('-').reverse().join('/') : ''; }
+function peso(i){ return i.acompanhante === 'SIM' ? 2 : 1; }
+function normalizar(t){ return (t || '').trim().toUpperCase(); }
+function minutos(h){ if(!h) return null; const [a,b]=h.split(':').map(Number); return Number.isFinite(a)&&Number.isFinite(b)?a*60+b:null; }
+function janela2h(lista, item){ const hs=[...lista,item].map(x=>minutos(x.horario)).filter(x=>x!==null); return hs.length<=1 || (Math.max(...hs)-Math.min(...hs)<=120); }
+function vagasUsadas(lista){ return lista.reduce((s,i)=>s+peso(i),0); }
+function ordenarBasico(lista){ return [...lista].sort((a,b)=>(normalizar(a.lugar||a.destino)).localeCompare(normalizar(b.lugar||b.destino)) || (a.horario||'').localeCompare(b.horario||'') || normalizar(a.paciente).localeCompare(normalizar(b.paciente))); }
+function isManhaOnibus(h){ return (h || '') <= '11:30'; }
+
+async function buscarColecao(nome, data){
+  const q = query(collection(db, nome), where('data','==',data), where('status','==','ativo'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function carregarConfiguracoes(){
+  const [onibus, carro, hemo] = await Promise.all([
+    getDoc(doc(db,'configuracoes','onibus')),
+    getDoc(doc(db,'configuracoes','carro')),
+    getDoc(doc(db,'configuracoes','hemodialise'))
+  ]);
+  if(onibus.exists()) configOnibus = { ...configOnibus, ...onibus.data() };
+  if(carro.exists()) configCarro = { ...configCarro, ...carro.data() };
+  if(hemo.exists()) configHemo = { ...configHemo, ...hemo.data() };
+}
+
+function montarCarros(lista){
+  const confirmados = ordenarBasico(lista.filter(i=>i.confirmado));
+  const porDestino = new Map();
+  for(const i of confirmados){ const key=normalizar(i.lugar)||'SEM DESTINO'; if(!porDestino.has(key)) porDestino.set(key,[]); porDestino.get(key).push(i); }
+  const carros=[];
+  for(const [, pacientes] of porDestino){
+    for(const p of pacientes.sort((a,b)=>(a.carroBaixo==='SIM'?0:1)-(b.carroBaixo==='SIM'?0:1) || (a.horario||'').localeCompare(b.horario||''))){
+      let ok=false;
+      for(const c of carros){
+        const mesmoDestino = c.pacientes.some(x=>normalizar(x.lugar)===normalizar(p.lugar));
+        if(!mesmoDestino) continue;
+        if(p.carroBaixo==='SIM' && c.tipo !== 'CARRO BAIXO') continue;
+        if(vagasUsadas(c.pacientes)+peso(p) <= Number(configCarro.capacidadeCarro||4) && janela2h(c.pacientes,p)) { c.pacientes.push(p); if(p.carroBaixo==='SIM') c.tipo='CARRO BAIXO'; ok=true; break; }
+      }
+      if(!ok) carros.push({ tipo:p.carroBaixo==='SIM'?'CARRO BAIXO':'A DEFINIR', pacientes:[p] });
+    }
+  }
+  // Tenta completar carros pequenos com destinos diferentes, mas respeitando capacidade e 2h.
+  for(let i=0;i<carros.length;i++){
+    for(let j=carros.length-1;j>i;j--){
+      if(vagasUsadas(carros[i].pacientes)+vagasUsadas(carros[j].pacientes) <= Number(configCarro.capacidadeCarro||4)){
+        const combinado=[...carros[i].pacientes, ...carros[j].pacientes];
+        const okJanela = combinado.every(p=>janela2h(combinado.filter(x=>x!==p), p));
+        const baixoOk = carros[j].tipo !== 'CARRO BAIXO' || carros[i].tipo === 'CARRO BAIXO';
+        if(okJanela && baixoOk){ carros[i].pacientes.push(...carros[j].pacientes); carros.splice(j,1); }
+      }
+    }
+  }
+  return carros.map((c,idx)=>({...c, numero:idx+1}));
+}
+
+function linha(modulo, viagem, pacientes, pessoas, obs){ return `<tr><td>${modulo}</td><td>${viagem}</td><td>${pacientes}</td><td>${pessoas}</td><td>${obs || ''}</td></tr>`; }
+
+async function carregarPainel(){
+  const data = el.data.value;
+  if(!data){ alert('Escolha uma data.'); return; }
+  mostrarStatus('Carregando painel...', 'info');
+  await carregarConfiguracoes();
+  const [onibus, carro, hemo] = await Promise.all([
+    buscarColecao('agendamentos_onibus', data), buscarColecao('agendamentos_carro', data), buscarColecao('agendamentos_hemodialise', data)
+  ]);
+  const onibusConf = onibus.filter(i=>i.confirmado);
+  const onibus5 = onibusConf.filter(i=>isManhaOnibus(i.horario));
+  const onibus10 = onibusConf.filter(i=>!isManhaOnibus(i.horario));
+  const carros = montarCarros(carro);
+  const hemoConf = hemo.filter(i=>i.confirmado);
+  const viagensOnibus = (onibus5.length?1:0)+(onibus10.length?1:0);
+  const viagensCarro = carros.length;
+  const viagensHemo = hemoConf.length ? 1 : 0;
+
+  el.tituloData.textContent = 'Resumo do dia ' + dataBR(data);
+  el.onibusTotal.textContent = viagensOnibus + ' viagem(ns)';
+  el.onibusDetalhes.innerHTML = `5h: ${vagasUsadas(onibus5)}/${configOnibus.limiteManha||32} pessoas/vagas<br>10h: ${vagasUsadas(onibus10)}/${configOnibus.limiteTarde||28} pessoas/vagas<br>Pacientes confirmados: ${onibusConf.length}`;
+  el.carroTotal.textContent = viagensCarro + ' carro(s)';
+  el.carroDetalhes.innerHTML = `Pessoas/vagas: ${vagasUsadas(carro.filter(i=>i.confirmado))}/${configCarro.vagasTotal||20}<br>Capacidade por carro: ${configCarro.capacidadeCarro||4}<br>Pacientes confirmados: ${carro.filter(i=>i.confirmado).length}`;
+  el.hemoTotal.textContent = viagensHemo + ' viagem(ns)';
+  el.hemoDetalhes.innerHTML = `Pessoas/vagas: ${vagasUsadas(hemoConf)}/${configHemo.limiteVagas||14}<br>Pacientes confirmados: ${hemoConf.length}`;
+
+  let html='';
+  if(onibus5.length) html += linha('Ônibus','Ônibus 5h', onibus5.length, vagasUsadas(onibus5), 'Consulta até 11:30');
+  if(onibus10.length) html += linha('Ônibus','Ônibus 10h', onibus10.length, vagasUsadas(onibus10), 'Consulta após 11:30');
+  for(const c of carros){ html += linha('Carro', `Carro ${c.numero}`, c.pacientes.length, `${vagasUsadas(c.pacientes)}/${configCarro.capacidadeCarro||4}`, `${c.tipo || 'A DEFINIR'} | destinos: ${[...new Set(c.pacientes.map(p=>p.lugar||'SEM DESTINO'))].join(', ')}`); }
+  if(hemoConf.length) html += linha('Hemodiálise','Hemodiálise', hemoConf.length, `${vagasUsadas(hemoConf)}/${configHemo.limiteVagas||14}`, 'Transporte de hemodiálise');
+  el.corpoTabela.innerHTML = html || '<tr><td colspan="5">Nenhuma viagem confirmada nesta data.</td></tr>';
+  esconderStatus();
+}
+
+function criarBotaoSair(){ if(document.getElementById('btnSairSistema')) return; const btn=document.createElement('button'); btn.id='btnSairSistema'; btn.textContent='Sair'; btn.type='button'; btn.style.cssText='position:fixed;top:12px;right:12px;z-index:9999;background:#dc2626;color:white;border:none;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer'; btn.onclick=async()=>{await signOut(auth); location.href='login.html';}; document.body.appendChild(btn); }
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){ location.href='login.html?next=painel_geral.html'; return; }
+  const snap=await getDoc(doc(db,'usuarios',user.uid));
+  if(!snap.exists() || snap.data().ativo===false){ alert('Usuário não cadastrado ou desativado.'); await signOut(auth); location.href='login.html'; return; }
+  if(snap.data().precisaTrocarSenha===true){ location.href='trocar_senha.html?next=painel_geral.html'; return; }
+  usuarioAtual=snap.data(); perfilAtual=usuarioAtual.perfil; criarBotaoSair();
+  el.data.value = hojeISO(); carregarPainel().catch(e=>{console.error(e); mostrarStatus('Erro ao carregar: '+e.message, 'erro');});
+});
+el.btnCarregar.addEventListener('click', ()=>carregarPainel().catch(e=>{console.error(e); mostrarStatus('Erro ao carregar: '+e.message, 'erro');}));
+el.btnImprimir.addEventListener('click', ()=>window.print());
+</script>
+</body>
+</html>

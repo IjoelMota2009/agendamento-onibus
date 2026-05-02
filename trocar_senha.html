@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trocar senha - Transporte Saúde</title>
+  <style>
+    body { font-family:'Segoe UI',sans-serif; background:#f4f7f6; margin:0; padding:20px; }
+    .box { max-width:420px; margin:80px auto; background:white; padding:26px; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.10); }
+    h1 { margin:0 0 8px; color:#0056b3; text-align:center; }
+    p { color:#475569; text-align:center; margin-bottom:22px; }
+    label { font-weight:700; font-size:14px; display:block; margin-top:12px; }
+    input { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box; margin-top:5px; }
+    button { width:100%; padding:13px; border:0; border-radius:8px; color:white; background:#16a34a; font-weight:800; cursor:pointer; margin-top:18px; }
+    .sair { background:#64748b; margin-top:8px; }
+    .msg { margin-top:14px; padding:10px; border-radius:8px; display:none; font-size:14px; }
+    .ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .erro { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .info { display:block; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Trocar senha</h1>
+    <p>Você está usando uma senha provisória. Crie uma senha nova para liberar o sistema.</p>
+
+    <label for="novaSenha">Nova senha</label>
+    <input id="novaSenha" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+
+    <label for="confirmarSenha">Confirmar nova senha</label>
+    <input id="confirmarSenha" type="password" autocomplete="new-password" placeholder="Repita a nova senha">
+
+    <button id="btnTrocar">SALVAR NOVA SENHA</button>
+    <button id="btnSair" class="sair">SAIR</button>
+    <div id="mensagem" class="msg"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updatePassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+      authDomain: "agendamento-a11d3.firebaseapp.com",
+      projectId: "agendamento-a11d3",
+      storageBucket: "agendamento-a11d3.firebasestorage.app",
+      messagingSenderId: "31776903316",
+      appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const novaSenha = document.getElementById('novaSenha');
+    const confirmarSenha = document.getElementById('confirmarSenha');
+    const btnTrocar = document.getElementById('btnTrocar');
+    const btnSair = document.getElementById('btnSair');
+    const mensagem = document.getElementById('mensagem');
+    let usuarioAtual = null;
+    let dadosUsuario = null;
+
+    function destino() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('next') || 'index.html';
+    }
+
+    function msg(texto, tipo='info') {
+      mensagem.textContent = texto;
+      mensagem.className = 'msg ' + tipo;
+    }
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = 'login.html?next=' + encodeURIComponent('trocar_senha.html'); return; }
+      usuarioAtual = user;
+      const snap = await getDoc(doc(db, 'usuarios', user.uid));
+      if (!snap.exists() || snap.data().ativo === false) {
+        msg('Usuário não cadastrado ou desativado. Fale com o administrador master.', 'erro');
+        return;
+      }
+      dadosUsuario = snap.data();
+      if (dadosUsuario.precisaTrocarSenha !== true) {
+        msg('Sua senha já foi trocada. Você pode seguir para o sistema.', 'ok');
+      } else {
+        msg('Crie uma senha nova para continuar.', 'info');
+      }
+    });
+
+    async function registrarLog() {
+      try {
+        await addDoc(collection(db, 'logs'), {
+          usuario: dadosUsuario?.usuario || '',
+          nomeUsuario: dadosUsuario?.nome || '',
+          email: usuarioAtual?.email || '',
+          perfil: dadosUsuario?.perfil || '',
+          acao: 'trocou_senha',
+          modulo: 'usuarios',
+          paciente: '',
+          dataRegistro: '',
+          detalhes: 'Usuário alterou a senha provisória',
+          criadoEm: Timestamp.now()
+        });
+      } catch (erro) {
+        console.error('Erro ao registrar log:', erro);
+      }
+    }
+
+    async function trocarSenha() {
+      const senha1 = novaSenha.value;
+      const senha2 = confirmarSenha.value;
+
+      if (!usuarioAtual) return msg('Usuário ainda não carregou. Aguarde.', 'erro');
+      if (!senha1 || !senha2) return msg('Preencha os dois campos.', 'erro');
+      if (senha1.length < 6) return msg('A senha precisa ter pelo menos 6 caracteres.', 'erro');
+      if (senha1 !== senha2) return msg('As senhas não conferem.', 'erro');
+
+      btnTrocar.disabled = true;
+      btnTrocar.textContent = 'SALVANDO...';
+      try {
+        await updatePassword(usuarioAtual, senha1);
+        await updateDoc(doc(db, 'usuarios', usuarioAtual.uid), {
+          precisaTrocarSenha: false,
+          senhaAlteradaEm: Timestamp.now()
+        });
+        await registrarLog();
+        msg('Senha alterada com sucesso. Entrando no sistema...', 'ok');
+        setTimeout(() => { window.location.href = destino(); }, 800);
+      } catch (erro) {
+        console.error(erro);
+        if (erro.code === 'auth/requires-recent-login') {
+          msg('Por segurança, entre novamente com a senha provisória e tente trocar de novo.', 'erro');
+          await signOut(auth);
+          setTimeout(() => { window.location.href = 'login.html?next=trocar_senha.html'; }, 1200);
+          return;
+        }
+        msg('Erro ao trocar senha: ' + erro.message, 'erro');
+      } finally {
+        btnTrocar.disabled = false;
+        btnTrocar.textContent = 'SALVAR NOVA SENHA';
+      }
+    }
+
+    btnTrocar.addEventListener('click', trocarSenha);
+    confirmarSenha.addEventListener('keydown', e => { if (e.key === 'Enter') trocarSenha(); });
+    btnSair.addEventListener('click', async () => { await signOut(auth); window.location.href = 'login.html'; });
+  </script>
+</body>
+</html>

@@ -5,42 +5,262 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transporte Saúde</title>
   <style>
-    body { font-family:'Segoe UI',sans-serif; background:#f4f7f6; margin:0; padding:20px; }
-    .container { max-width:700px; margin:80px auto; background:white; padding:30px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.08); text-align:center; }
-    h1 { color:#0056b3; margin-bottom:10px; }
-    p { color:#555; margin-bottom:30px; }
-    .menu {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    justify-items: center;
+    :root {
+      --bg: #f4f7f6;
+      --text: #111827;
+      --muted: #64748b;
+      --card: #ffffff;
     }
-    .menu a {
-    width: 100%;
-    max-width: 250px;
-    text-align: center;
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 20px;
+      color: var(--text);
     }
-    a { text-decoration:none; padding:25px; border-radius:10px; color:white; font-size:22px; font-weight:bold; transition:.2s; display:block; }
-    .onibus { background:#0284c7; }
-    .carro { background:#16a34a; }
-    a:hover { transform:scale(1.03); opacity:.9; }
-    @media (max-width:600px) { .menu { grid-template-columns:1fr; } .container { margin-top:40px; } }
-    .hemo {
-    grid-column: span 2; /* ocupa as duas colunas */
-    max-width: 300px;   /* deixa menor e centralizado */
-    background: #9333ea;
+
+    .container {
+      max-width: 920px;
+      margin: 55px auto;
+      background: var(--card);
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    .topo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      color: #0056b3;
+      margin: 0 0 8px;
+    }
+
+    .subtitulo {
+      color: #555;
+      margin: 0;
+    }
+
+    .perfil-box {
+      display: none;
+      text-align: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 22px;
+      color: #334155;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .menu-section {
+      margin-bottom: 26px;
+    }
+
+    .menu-section h3 {
+      margin: 0 0 12px;
+      color: #1f2937;
+      font-size: 17px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 7px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 76px;
+      padding: 18px;
+      color: white;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 19px;
+      text-align: center;
+      transition: .2s;
+      box-sizing: border-box;
+      box-shadow: 0 2px 6px rgba(15,23,42,.12);
+    }
+
+    .menu-btn:hover {
+      transform: translateY(-2px);
+      opacity: .92;
+    }
+
+    .onibus { background: #0284c7; }
+    .carro { background: #16a34a; }
+    .hemo { background: #7c3aed; }
+    .painel { background: #2563eb; }
+    .relatorio { background: #b45309; }
+    .usuarios { background: #334155; }
+    .logs { background: #0f766e; }
+
+    .admin-area {
+      display: none;
+    }
+
+    .master-area {
+      display: none;
+    }
+
+    .btn-sair {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 9999;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    @media (max-width: 650px) {
+      .container {
+        margin-top: 35px;
+        padding: 22px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-btn {
+        min-height: 62px;
+        font-size: 18px;
+      }
     }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>Sistema de Transporte Saúde</h1>
-  <p>Selecione o tipo de agendamento</p>
-  <div class="menu">
-    <a class="onibus" href="onibus.html">Ônibus</a>
-    <a class="carro" href="carro.html">Carro</a>
-    <a class="hemo" href="hemodialise.html">Hemodiálise</a>
+  <div class="container">
+    <div class="topo">
+      <h1>Sistema de Transporte Saúde</h1>
+      <p class="subtitulo">Selecione uma opção para continuar</p>
+    </div>
+
+    <div id="perfilBox" class="perfil-box"></div>
+
+    <div class="menu-section">
+      <h3>Gerenciar do dia</h3>
+      <div class="menu-grid">
+        <a class="menu-btn painel" href="painel_geral.html">Painel Geral</a>
+        <a class="menu-btn onibus" href="onibus.html">Ônibus</a>
+        <a class="menu-btn carro" href="carro.html">Carro</a>
+        <a class="menu-btn hemo" href="hemodialise.html">Hemodiálise</a>
+      </div>
+    </div>
+
+    <div class="menu-section admin-area" id="areaAdmin">
+      <h3>Relatórios</h3>
+      <div class="menu-grid">
+        <a class="menu-btn relatorio" href="relatorio_viagens.html">Gerar Relatório</a>
+      </div>
+    </div>
+
+    <div class="menu-section master-area" id="areaMaster">
+      <h3>Administração Master</h3>
+      <div class="menu-grid">
+        <a class="menu-btn usuarios" href="usuarios.html">Gerenciar Usuários</a>
+        <a class="menu-btn logs" href="logs.html">Ver Logs</a>
+      </div>
+    </div>
   </div>
-</div>
+
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+      authDomain: "agendamento-a11d3.firebaseapp.com",
+      projectId: "agendamento-a11d3",
+      storageBucket: "agendamento-a11d3.firebasestorage.app",
+      messagingSenderId: "31776903316",
+      appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const perfilBox = document.getElementById('perfilBox');
+    const areaAdmin = document.getElementById('areaAdmin');
+    const areaMaster = document.getElementById('areaMaster');
+
+    function criarBotaoSair() {
+      if (document.getElementById('btnSairSistema')) return;
+      const btn = document.createElement('button');
+      btn.id = 'btnSairSistema';
+      btn.className = 'btn-sair';
+      btn.textContent = 'Sair';
+      btn.type = 'button';
+      btn.addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'login.html';
+      });
+      document.body.appendChild(btn);
+    }
+
+    function nomePerfil(perfil) {
+      if (perfil === 'master') return 'Administrador Master';
+      if (perfil === 'admin') return 'Administrador';
+      return 'Agendante';
+    }
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = 'login.html?next=index.html';
+        return;
+      }
+
+      const snap = await getDoc(doc(db, 'usuarios', user.uid));
+
+      if (!snap.exists() || snap.data().ativo === false) {
+        alert('Usuário não cadastrado ou desativado.');
+        await signOut(auth);
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const dados = snap.data();
+
+      if (dados.precisaTrocarSenha === true) {
+        window.location.href = 'trocar_senha.html?next=index.html';
+        return;
+      }
+
+      const perfil = dados.perfil || 'agendante';
+
+      perfilBox.textContent = `${dados.nome || dados.usuario || 'Usuário'} — ${nomePerfil(perfil)}`;
+      perfilBox.style.display = 'block';
+
+      // Agendante: só Gerenciar do Dia.
+      // Admin: Gerenciar do Dia + Gerar Relatório.
+      // Master: todos os botões.
+      if (perfil === 'admin' || perfil === 'master') {
+        areaAdmin.style.display = 'block';
+      }
+
+      if (perfil === 'master') {
+        areaMaster.style.display = 'block';
+      }
+
+      criarBotaoSair();
+    });
+  </script>
 </body>
 </html>

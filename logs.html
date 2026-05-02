@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logs - Transporte Saúde</title>
+  <style>
+    body { font-family:'Segoe UI',sans-serif; background:#f4f7f6; margin:0; padding:20px; }
+    .container { max-width:1100px; margin:auto; }
+    .header { background:#1a1a1a; color:white; padding:15px; border-radius:8px; text-align:center; margin-bottom:20px; }
+    .header a { color:#ddd; text-decoration:none; font-size:14px; }
+    .card { background:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    h3 { margin-top:0; color:#0f766e; border-bottom:2px solid #f0f0f0; padding-bottom:10px; }
+    .linha { border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:8px; background:#fff; }
+    .acao { font-weight:800; color:#0f172a; text-transform:uppercase; }
+    .meta { color:#475569; font-size:13px; margin-top:4px; }
+    .filtros { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; margin-bottom:15px; }
+    input, select { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; }
+    button { padding:10px 14px; border:none; border-radius:6px; background:#0f766e; color:white; font-weight:800; cursor:pointer; }
+    @media (max-width:800px) { .filtros { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Logs do Sistema</h1>
+    <a href="index.html">← Voltar ao menu</a>
+  </div>
+  <div class="card">
+    <h3>Últimas ações</h3>
+    <div class="filtros">
+      <input id="filtroTexto" placeholder="Filtrar por paciente, usuário ou ação">
+      <select id="filtroModulo">
+        <option value="">Todos os módulos</option>
+        <option value="onibus">Ônibus</option>
+        <option value="carro">Carro</option>
+        <option value="hemodialise">Hemodiálise</option>
+        <option value="usuarios">Usuários</option>
+      </select>
+      <input id="filtroData" type="date">
+      <button id="btnLimpar">Limpar</button>
+    </div>
+    <div id="listaLogs">Carregando...</div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+    authDomain: "agendamento-a11d3.firebaseapp.com",
+    projectId: "agendamento-a11d3",
+    storageBucket: "agendamento-a11d3.firebasestorage.app",
+    messagingSenderId: "31776903316",
+    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  let todosLogs = [];
+
+  const el = {
+    lista: document.getElementById('listaLogs'),
+    texto: document.getElementById('filtroTexto'),
+    modulo: document.getElementById('filtroModulo'),
+    data: document.getElementById('filtroData'),
+    limpar: document.getElementById('btnLimpar')
+  };
+
+  function criarBotaoSair() {
+    if (document.getElementById('btnSairSistema')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnSairSistema'; btn.textContent = 'Sair'; btn.type = 'button';
+    btn.style.position = 'fixed'; btn.style.top = '12px'; btn.style.right = '12px'; btn.style.zIndex = '9999';
+    btn.style.background = '#dc2626'; btn.style.color = 'white'; btn.style.border = 'none'; btn.style.borderRadius = '8px'; btn.style.padding = '8px 12px'; btn.style.fontWeight = '700'; btn.style.cursor = 'pointer';
+    btn.addEventListener('click', async () => { await signOut(auth); window.location.href='login.html'; });
+    document.body.appendChild(btn);
+  }
+
+  function formatarData(ts) {
+    try {
+      const d = ts?.toDate ? ts.toDate() : null;
+      if (!d) return '-';
+      return d.toLocaleString('pt-BR');
+    } catch { return '-'; }
+  }
+
+  function renderizar() {
+    const texto = el.texto.value.trim().toUpperCase();
+    const modulo = el.modulo.value;
+    const data = el.data.value;
+    let lista = todosLogs;
+    if (modulo) lista = lista.filter(l => l.modulo === modulo);
+    if (data) lista = lista.filter(l => l.dataRegistro === data);
+    if (texto) {
+      lista = lista.filter(l => [l.acao,l.modulo,l.paciente,l.usuario,l.nomeUsuario,l.detalhes].join(' ').toUpperCase().includes(texto));
+    }
+    el.lista.innerHTML = '';
+    if (lista.length === 0) { el.lista.textContent = 'Nenhum log encontrado.'; return; }
+    for (const log of lista) {
+      const div = document.createElement('div');
+      div.className = 'linha';
+      div.innerHTML = `<div class="acao">${log.acao || '-'}</div><div class="meta">Módulo: ${log.modulo || '-'} | Paciente: ${log.paciente || '-'} | Data registro: ${log.dataRegistro || '-'} | Usuário: ${log.nomeUsuario || log.usuario || '-'} (${log.perfil || '-'}) | Quando: ${formatarData(log.criadoEm)}</div><div class="meta">${log.detalhes || ''}</div>`;
+      el.lista.appendChild(div);
+    }
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href='login.html?next=logs.html'; return; }
+    const snap = await getDoc(doc(db, 'usuarios', user.uid));
+    if (snap.exists() && snap.data().precisaTrocarSenha === true) { window.location.href='trocar_senha.html?next=logs.html'; return; }
+    if (!snap.exists() || !['master','admin'].includes(snap.data().perfil)) {
+      alert('Apenas admin ou master pode ver os logs.');
+      window.location.href='index.html';
+      return;
+    }
+    criarBotaoSair();
+    const q = query(collection(db, 'logs'), orderBy('criadoEm', 'desc'), limit(300));
+    onSnapshot(q, s => { todosLogs = s.docs.map(d => ({ id:d.id, ...d.data() })); renderizar(); }, erro => { console.error(erro); el.lista.textContent = 'Erro ao carregar logs: ' + erro.message; });
+  });
+
+  el.texto.addEventListener('input', renderizar);
+  el.modulo.addEventListener('change', renderizar);
+  el.data.addEventListener('change', renderizar);
+  el.limpar.addEventListener('click', () => { el.texto.value=''; el.modulo.value=''; el.data.value=''; renderizar(); });
+</script>
+</body>
+</html>

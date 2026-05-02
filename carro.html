@@ -63,7 +63,40 @@
             color: var(--primary);
         }
 
-        .form-row {
+        
+        .header-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-card h3 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            color: var(--primary);
+        }
+
+        .btn-config {
+            background: #334155;
+            color: white;
+            width: auto;
+            padding: 7px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-config:hover {
+            opacity: 0.9;
+        }
+.form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
@@ -117,25 +150,13 @@
             margin-top: 8px;
             display: none;
         }
-
-        .btn-config {
-            background: #e5e7eb;
-            color: #374151;
-            padding: 7px 10px;
-            border: 1px solid #d1d5db;
-            font-size: 12px;
-            float: right;
-            margin-top: -6px;
-        }
-
-        .config-panel {
+.config-panel {
             display: none;
             background: #f8fafc;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 15px;
-            clear: both;
         }
 
         .config-panel h4 {
@@ -459,8 +480,10 @@
             </div>
 
             <div class="card">
-                <h3>2. Controle do Dia</h3>
-                <button class="btn btn-config" id="btnAbrirConfig" type="button">⚙️ Configurações</button>
+                <div class="header-card">
+                    <h3>2. Controle do Dia</h3>
+                    <button class="btn btn-config" id="btnAbrirConfig" type="button">⚙️ Configurações</button>
+                </div>
 
                 <div class="config-panel" id="painelConfig">
                     <h4>Configuração do Carro</h4>
@@ -649,6 +672,25 @@
             return lista.reduce((total, item) => total + pesoVagas(item), 0);
         }
 
+        function horarioParaMinutos(horario) {
+            if (!horario) return null;
+            const partes = horario.split(':').map(Number);
+            if (partes.length < 2 || Number.isNaN(partes[0]) || Number.isNaN(partes[1])) return null;
+            return partes[0] * 60 + partes[1];
+        }
+
+        function dentroDaJanelaDeDuasHoras(pacientes, novoPaciente) {
+            const horarios = [...pacientes, novoPaciente]
+                .map(item => horarioParaMinutos(item.horario))
+                .filter(valor => valor !== null);
+
+            if (horarios.length <= 1) return true;
+
+            const menor = Math.min(...horarios);
+            const maior = Math.max(...horarios);
+            return (maior - menor) <= 120;
+        }
+
         function precisaCarroBaixo(grupo) {
             return grupo.some(item => item.carroBaixo === 'SIM');
         }
@@ -656,6 +698,7 @@
         function tentarAdicionarNoCarro(carro, item) {
             const total = vagasUsadas(carro.pacientes) + pesoVagas(item);
             if (total > capacidadePorCarro) return false;
+            if (!dentroDaJanelaDeDuasHoras(carro.pacientes, item)) return false;
             carro.pacientes.push(item);
             return true;
         }
@@ -719,6 +762,11 @@
 
                     if (pesoCarro > sobra) continue;
                     if (precisaCarroBaixo(carro.pacientes) && destino.tipoPreferencial !== 'CARRO BAIXO') continue;
+
+                    const horariosCompativeis = carro.pacientes.every(paciente =>
+                        dentroDaJanelaDeDuasHoras(destino.pacientes, paciente)
+                    );
+                    if (!horariosCompativeis) continue;
 
                     destino.pacientes.push(...carro.pacientes);
                     if (precisaCarroBaixo(carro.pacientes)) destino.tipoPreferencial = 'CARRO BAIXO';
@@ -861,6 +909,7 @@
         }
 
         async function salvarConfiguracao() {
+        if (!window.podeConfigurarSistema?.()) { alert('Você não tem permissão para alterar configurações.'); return; }
             const novasVagas = Number(el.configVagasTotal.value);
             const novaCapacidade = Number(el.configCapacidadeCarro.value);
 
@@ -876,6 +925,7 @@
                     atualizadoEm: Timestamp.now()
                 }, { merge: true });
 
+                await window.registrarLog?.({ acao: 'alterou_configuracao', modulo: 'carro', detalhes: `Vagas: ${novasVagas} | Capacidade por carro: ${novaCapacidade}` });
                 mostrarStatus('Configuração salva com sucesso.');
                 el.painelConfig.style.display = 'none';
             } catch (erro) {
@@ -984,6 +1034,7 @@
                         atualizadoEm: Timestamp.now()
                     });
 
+                    await window.registrarLog?.({ acao: 'editou_agendamento', modulo: 'carro', paciente: dados.paciente, dataRegistro: dados.data, detalhes: `Horário: ${dados.horario} | Destino: ${dados.lugar}` });
                     mostrarStatus('Agendamento editado com sucesso.');
                     cancelarEdicao(false);
                     return;
@@ -1008,6 +1059,7 @@
                 });
 
                 limparCampos();
+                await window.registrarLog?.({ acao: 'cadastrou_agendamento', modulo: 'carro', paciente: dados.paciente, dataRegistro: dados.data, detalhes: `Horário: ${dados.horario} | Destino: ${dados.lugar}` });
                 mostrarStatus('Agendamento salvo com sucesso.');
             } catch (erro) {
                 console.error(erro);
@@ -1065,6 +1117,11 @@
 
             const novoValor = !item.confirmado;
 
+            if (!novoValor) {
+                const ok = confirm(`Tem certeza que quer DESMARCAR ${item.paciente || 'este paciente'}?`);
+                if (!ok) return;
+            }
+
             if (novoValor && contarConfirmados() >= limiteCarro) {
                 alert('Limite de ' + limiteCarro + ' vagas confirmadas atingido.');
                 return;
@@ -1079,6 +1136,7 @@
                     confirmado: novoValor,
                     atualizadoEm: Timestamp.now()
                 });
+                await window.registrarLog?.({ acao: novoValor ? 'confirmou_agendamento' : 'desconfirmou_agendamento', modulo: 'carro', paciente: item.paciente || '', dataRegistro: item.data || '', detalhes: `Horário: ${item.horario || ''}` });
             } catch (erro) {
                 console.error(erro);
                 item.confirmado = backup;
@@ -1108,6 +1166,7 @@
                     motivoExclusao: motivo.trim() || 'Sem motivo informado'
                 });
 
+                await window.registrarLog?.({ acao: 'excluiu_agendamento', modulo: 'carro', paciente: backup?.paciente || '', dataRegistro: backup?.data || '', detalhes: motivo.trim() || 'Sem motivo informado' });
                 mostrarStatus('Paciente marcado como excluído.');
             } catch (erro) {
                 console.error(erro);
@@ -1214,7 +1273,7 @@
                         <div>
                             <h2 style="margin:0">${via} - DATA: ${dataBr} - CARROS</h2>
                             <div style="font-size:13px;margin-top:4px">
-                                Separado automaticamente por destino, capacidade configurada por carro e necessidade de carro baixo.
+                                Separado automaticamente por destino, janela máxima de 2 horas, capacidade configurada por carro e necessidade de carro baixo.
                             </div>
                         </div>
                         <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${limiteCarro}</h2>
@@ -1263,5 +1322,141 @@
         iniciarEscutaConfiguracao();
         renderizarPainel();
     </script>
+
+<script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+    authDomain: "agendamento-a11d3.firebaseapp.com",
+    projectId: "agendamento-a11d3",
+    storageBucket: "agendamento-a11d3.firebasestorage.app",
+    messagingSenderId: "31776903316",
+    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+};
+
+    const appSeguranca = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const authSeguranca = getAuth(appSeguranca);
+    const dbSeguranca = getFirestore(appSeguranca);
+
+    function paginaAtual() {
+        return window.location.pathname.split('/').pop() || 'index.html';
+    }
+
+    function criarBotaoSair(perfil) {
+        if (document.getElementById('btnSairSistema')) return;
+
+        const caixa = document.createElement('div');
+        caixa.id = 'caixaUsuarioSistema';
+        caixa.style.position = 'fixed';
+        caixa.style.top = '12px';
+        caixa.style.right = '12px';
+        caixa.style.zIndex = '9999';
+        caixa.style.display = 'flex';
+        caixa.style.gap = '8px';
+        caixa.style.alignItems = 'center';
+
+        const badge = document.createElement('span');
+        badge.textContent = (window.usuarioAtual?.nome || window.usuarioAtual?.usuario || 'Usuário') + ' • ' + perfil.toUpperCase();
+        badge.style.background = '#0f172a';
+        badge.style.color = 'white';
+        badge.style.borderRadius = '8px';
+        badge.style.padding = '8px 10px';
+        badge.style.fontSize = '12px';
+        badge.style.fontWeight = '700';
+
+        const btn = document.createElement('button');
+        btn.id = 'btnSairSistema';
+        btn.textContent = 'Sair';
+        btn.type = 'button';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '8px 12px';
+        btn.style.fontWeight = '700';
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', async () => {
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+        });
+
+        caixa.appendChild(badge);
+        caixa.appendChild(btn);
+        document.body.appendChild(caixa);
+    }
+
+    function aplicarPermissoesVisuais(perfil) {
+        const podeConfigurar = perfil === 'master' || perfil === 'admin';
+        const btnConfig = document.getElementById('btnAbrirConfig');
+        const painelConfig = document.getElementById('painelConfig');
+        if (!podeConfigurar) {
+            if (btnConfig) btnConfig.style.display = 'none';
+            if (painelConfig) painelConfig.style.display = 'none';
+        }
+
+        const linksUsuarios = document.querySelectorAll('[data-master-only="true"]');
+        linksUsuarios.forEach(el => el.style.display = perfil === 'master' ? '' : 'none');
+    }
+
+    window.usuarioAtual = null;
+    window.perfilUsuario = null;
+    window.podeConfigurarSistema = () => window.perfilUsuario === 'master' || window.perfilUsuario === 'admin';
+    window.podeGerenciarUsuarios = () => window.perfilUsuario === 'master';
+
+    window.registrarLog = async function(info) {
+        try {
+            if (!window.usuarioAtual) return;
+            await addDoc(collection(dbSeguranca, 'logs'), {
+                uid: window.usuarioAtual.uid,
+                usuario: window.usuarioAtual.usuario || '',
+                nomeUsuario: window.usuarioAtual.nome || '',
+                email: window.usuarioAtual.email || '',
+                perfil: window.usuarioAtual.perfil || '',
+                acao: info.acao || 'acao',
+                modulo: info.modulo || paginaAtual(),
+                paciente: info.paciente || '',
+                dataRegistro: info.dataRegistro || '',
+                detalhes: info.detalhes || '',
+                criadoEm: Timestamp.now()
+            });
+        } catch (erro) {
+            console.error('Erro ao registrar log:', erro);
+        }
+    };
+
+    onAuthStateChanged(authSeguranca, async (user) => {
+        if (!user) {
+            window.location.href = 'login.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        const snap = await getDoc(doc(dbSeguranca, 'usuarios', user.uid));
+        if (!snap.exists() || snap.data().ativo === false) {
+            alert('Seu usuário não está cadastrado ou está desativado. Fale com o administrador master.');
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+            return;
+        }
+
+        if (snap.data().precisaTrocarSenha === true) {
+            window.location.href = 'trocar_senha.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        window.usuarioAtual = { uid: user.uid, email: user.email, ...snap.data() };
+        window.perfilUsuario = window.usuarioAtual.perfil;
+        criarBotaoSair(window.perfilUsuario);
+        aplicarPermissoesVisuais(window.perfilUsuario);
+
+        if (paginaAtual() === 'usuarios.html' && window.perfilUsuario !== 'master') {
+            alert('Apenas o administrador master pode gerenciar usuários.');
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+
 </body>
 </html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Transporte Saúde</title>
+  <style>
+    :root { --primary:#0056b3; --bg:#f4f7f6; --danger:#dc2626; }
+    body { font-family:'Segoe UI',sans-serif; background:var(--bg); margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
+    .card { width:100%; max-width:420px; background:white; padding:28px; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.10); }
+    h1 { margin:0; color:var(--primary); text-align:center; }
+    p { text-align:center; color:#64748b; margin:8px 0 24px; }
+    label { display:block; margin:12px 0 6px; font-weight:700; color:#334155; }
+    input { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box; font-size:15px; }
+    button { width:100%; margin-top:18px; padding:13px; border:none; border-radius:8px; background:var(--primary); color:white; font-weight:800; cursor:pointer; font-size:15px; }
+    .msg { display:none; margin-top:14px; padding:10px; border-radius:8px; font-size:14px; }
+    .erro { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .hint { margin-top:16px; font-size:12px; color:#64748b; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Transporte Saúde</h1>
+    <p>Entre com usuário e senha</p>
+
+    <label for="usuario">Usuário</label>
+    <input id="usuario" autocomplete="username" placeholder="ex: joel">
+
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" placeholder="Senha">
+
+    <button id="btnEntrar">ENTRAR</button>
+    <div id="mensagem" class="msg"></div>
+    <div class="hint">Usuários são cadastrados pelo administrador master.</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+      authDomain: "agendamento-a11d3.firebaseapp.com",
+      projectId: "agendamento-a11d3",
+      storageBucket: "agendamento-a11d3.firebasestorage.app",
+      messagingSenderId: "31776903316",
+      appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const usuario = document.getElementById('usuario');
+    const senha = document.getElementById('senha');
+    const btnEntrar = document.getElementById('btnEntrar');
+    const mensagem = document.getElementById('mensagem');
+
+    function emailDoUsuario(nome) {
+      return nome.trim().toLowerCase().replace(/\s+/g, '') + '@sistema.local';
+    }
+
+    function destinoDepoisLogin() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('next') || 'index.html';
+    }
+
+    function msg(texto, tipo) {
+      mensagem.textContent = texto;
+      mensagem.className = 'msg ' + tipo;
+    }
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, 'usuarios', user.uid));
+        if (snap.exists() && snap.data().precisaTrocarSenha === true) {
+          window.location.href = 'trocar_senha.html?next=' + encodeURIComponent(destinoDepoisLogin());
+          return;
+        }
+      } catch (erro) {
+        console.error(erro);
+      }
+      window.location.href = destinoDepoisLogin();
+    });
+
+    async function entrar() {
+      const nome = usuario.value.trim();
+      const pass = senha.value;
+      if (!nome || !pass) return msg('Digite usuário e senha.', 'erro');
+
+      btnEntrar.disabled = true;
+      btnEntrar.textContent = 'ENTRANDO...';
+      try {
+        await signInWithEmailAndPassword(auth, emailDoUsuario(nome), pass);
+        msg('Login efetuado.', 'ok');
+      } catch (erro) {
+        console.error(erro);
+        msg('Usuário ou senha inválidos.', 'erro');
+      } finally {
+        btnEntrar.disabled = false;
+        btnEntrar.textContent = 'ENTRAR';
+      }
+    }
+
+    btnEntrar.addEventListener('click', entrar);
+    senha.addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+  </script>
+</body>
+</html>

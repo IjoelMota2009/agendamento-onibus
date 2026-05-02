@@ -60,7 +60,40 @@
             color: var(--primary);
         }
 
-        .form-row {
+        
+        .header-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-card h3 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            color: var(--primary);
+        }
+
+        .btn-config {
+            background: #334155;
+            color: white;
+            width: auto;
+            padding: 7px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-config:hover {
+            opacity: 0.9;
+        }
+.form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
@@ -148,6 +181,22 @@
         .btn-small { padding: 8px 10px; font-size: 12px; }
         .btn-purple { background: var(--primary); }
         .btn-warning { background: var(--warning); }
+
+
+        .config-panel {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 0 0 15px;
+        }
+
+        .btn-config-save {
+            background: #16a34a;
+            width: 100%;
+            margin-top: 10px;
+        }
 
         .vagas-box {
             padding: 18px;
@@ -325,13 +374,21 @@
         </div>
 
         <div class="card">
-            <h3>2. Controle do Dia</h3>
+            <div class="header-card">
+                <h3>2. Controle do Dia</h3>
+                <button class="btn btn-config" id="btnAbrirConfig" type="button">⚙️ Configurações</button>
+            </div>
 
             <div id="statusData" style="text-align:center;font-weight:bold;margin-bottom:15px;color:var(--primary);">Selecione uma data</div>
 
             <div class="vagas-box">
                 <span>VAGAS CONFIRMADAS / CAPACIDADE</span>
                 <span class="vagas-numero" id="vagasDia">0 / 14</span>
+            </div>
+            <div class="config-panel" id="painelConfig">
+                <label for="configLimiteVagas">Vagas da Hemodiálise:</label>
+                <input type="number" id="configLimiteVagas" min="1" value="14">
+                <button class="btn btn-config-save" id="btnSalvarConfig" type="button">SALVAR CONFIGURAÇÃO</button>
             </div>
 
             <button class="btn btn-warning" id="btnGerarFixos" style="width:100%;margin-bottom:8px;">GERAR FIXOS PARA ESTA DATA</button>
@@ -380,7 +437,8 @@
         doc,
         Timestamp,
         onSnapshot,
-        getDocs
+        getDocs,
+        setDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -397,7 +455,9 @@
 
     const COLECAO_AGENDAMENTOS = 'agendamentos_hemodialise';
     const COLECAO_FIXOS = 'pacientes_fixos_hemodialise';
-    const LIMITE_VAGAS = 14;
+    const COLECAO_CONFIG = 'configuracoes';
+    const DOC_CONFIG_HEMODIALISE = 'hemodialise';
+    let LIMITE_VAGAS = 14;
 
     let db = [];
     let fixos = [];
@@ -428,6 +488,10 @@
         btnVerLista: document.getElementById('btnVerLista'),
         btnVerFixos: document.getElementById('btnVerFixos'),
         btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+        btnAbrirConfig: document.getElementById('btnAbrirConfig'),
+        painelConfig: document.getElementById('painelConfig'),
+        configLimiteVagas: document.getElementById('configLimiteVagas'),
+        btnSalvarConfig: document.getElementById('btnSalvarConfig'),
         btnBuscaGeral: document.getElementById('btnBuscaGeral'),
         inputBuscaLista: document.getElementById('inputBuscaLista'),
         buscaGeral: document.getElementById('buscaGeral'),
@@ -648,6 +712,59 @@
         renderizarFixos();
     }
 
+    function aplicarConfiguracaoNaTela() {
+        el.configLimiteVagas.value = LIMITE_VAGAS;
+        renderizarPainel();
+        renderizarLista();
+    }
+
+    function iniciarEscutaConfiguracao() {
+        onSnapshot(
+            doc(firestore, COLECAO_CONFIG, DOC_CONFIG_HEMODIALISE),
+            snapshot => {
+                if (snapshot.exists()) {
+                    const config = snapshot.data();
+                    LIMITE_VAGAS = Number(config.limiteVagas) || 14;
+                } else {
+                    LIMITE_VAGAS = 14;
+                }
+                aplicarConfiguracaoNaTela();
+            },
+            erro => {
+                console.error(erro);
+                mostrarStatus('Erro ao carregar configurações: ' + erro.message, 'erro', 6000);
+            }
+        );
+    }
+
+    function alternarPainelConfiguracao() {
+        el.painelConfig.style.display = el.painelConfig.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function salvarConfiguracao() {
+        if (!window.podeConfigurarSistema?.()) { alert('Você não tem permissão para alterar configurações.'); return; }
+        const novoLimite = Number(el.configLimiteVagas.value);
+
+        if (!novoLimite || novoLimite < 1) {
+            alert('Informe um número válido de vagas.');
+            return;
+        }
+
+        try {
+            await setDoc(doc(firestore, COLECAO_CONFIG, DOC_CONFIG_HEMODIALISE), {
+                limiteVagas: novoLimite,
+                atualizadoEm: Timestamp.now()
+            }, { merge: true });
+            el.painelConfig.style.display = 'none';
+            await window.registrarLog?.({ acao: 'alterou_configuracao', modulo: 'hemodialise', detalhes: `Vagas: ${novoLimite}` });
+            mostrarStatus('Configuração salva com sucesso.');
+        } catch (erro) {
+            console.error(erro);
+            alert('Erro ao salvar configuração: ' + erro.message);
+            mostrarStatus('Erro ao salvar configuração.', 'erro', 6000);
+        }
+    }
+
     function iniciarEscutaData(data) {
         dataAtual = data;
         db = [];
@@ -789,6 +906,7 @@
         });
 
         limparCampos();
+        await window.registrarLog?.({ acao: 'cadastrou_agendamento', modulo: 'hemodialise', paciente: dados.paciente, dataRegistro: dados.data, detalhes: `Horário: ${dados.horario} | Destino: ${dados.destino}` });
         mostrarStatus('Agendamento salvo com sucesso.');
     }
 
@@ -809,6 +927,7 @@
         });
 
         limparCampos();
+        await window.registrarLog?.({ acao: 'cadastrou_paciente_fixo', modulo: 'hemodialise', paciente: dados.paciente, detalhes: `Dias: ${(dados.diasSemana || []).join(',')}` });
         mostrarStatus('Paciente fixo salvo com sucesso.');
     }
 
@@ -839,6 +958,7 @@
         editandoId = null;
         editandoTipo = null;
         limparCampos();
+        await window.registrarLog?.({ acao: 'editou_agendamento', modulo: 'hemodialise', paciente: dados.paciente, dataRegistro: dados.data, detalhes: `Horário: ${dados.horario} | Destino: ${dados.destino}` });
         mostrarStatus('Agendamento editado com sucesso.');
 
         if (dataAtual !== dados.data) iniciarEscutaData(dados.data);
@@ -860,6 +980,7 @@
         editandoId = null;
         editandoTipo = null;
         limparCampos();
+        await window.registrarLog?.({ acao: 'editou_paciente_fixo', modulo: 'hemodialise', paciente: dados.paciente, detalhes: `Dias: ${(dados.diasSemana || []).join(',')}` });
         mostrarStatus('Paciente fixo editado com sucesso.');
     }
 
@@ -929,6 +1050,11 @@
         const item = db.find(i => i.id === id);
         if (!item) return;
 
+        if (!valor) {
+            const ok = confirm(`Tem certeza que quer DESCONFIRMAR ${item.paciente || 'este paciente'}?`);
+            if (!ok) { atualizarTela(); return; }
+        }
+
         if (valor) {
             const totalSeConfirmar = totalConfirmadoSem(id) + pesoRegistro(item);
             if (totalSeConfirmar > LIMITE_VAGAS) {
@@ -943,6 +1069,7 @@
 
         try {
             await updateDoc(doc(firestore, COLECAO_AGENDAMENTOS, id), { confirmado: valor });
+            await window.registrarLog?.({ acao: valor ? 'confirmou_agendamento' : 'desconfirmou_agendamento', modulo: 'hemodialise', paciente: item.paciente || '', dataRegistro: item.data || '', detalhes: `Horário: ${item.horario || ''}` });
         } catch (erro) {
             item.confirmado = !valor;
             atualizarTela();
@@ -965,6 +1092,7 @@
             excluidoEm: Timestamp.now(),
             motivoExclusao: motivo.trim() || 'Sem motivo informado'
         });
+        await window.registrarLog?.({ acao: 'excluiu_agendamento', modulo: 'hemodialise', paciente: item?.paciente || '', dataRegistro: item?.data || '', detalhes: motivo.trim() || 'Sem motivo informado' });
         mostrarStatus('Agendamento excluído.');
     }
 
@@ -977,6 +1105,7 @@
             excluidoEm: Timestamp.now(),
             motivoExclusao: motivo.trim() || 'Sem motivo informado'
         });
+        await window.registrarLog?.({ acao: 'excluiu_paciente_fixo', modulo: 'hemodialise', detalhes: motivo.trim() || 'Sem motivo informado' });
         mostrarStatus('Paciente fixo excluído.');
     }
 
@@ -1184,12 +1313,151 @@
     el.btnVerFixos.addEventListener('click', abrirFixos);
     el.inputBuscaLista.addEventListener('input', renderizarLista);
     el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+    el.btnAbrirConfig.addEventListener('click', alternarPainelConfiguracao);
+    el.btnSalvarConfig.addEventListener('click', salvarConfiguracao);
     el.btnBuscaGeral.addEventListener('click', buscaGeral);
 
     iniciarEscutaFixos();
     atualizarVisibilidadeDias();
     atualizarModoEdicao();
+    iniciarEscutaConfiguracao();
     renderizarPainel();
 </script>
+
+<script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+    authDomain: "agendamento-a11d3.firebaseapp.com",
+    projectId: "agendamento-a11d3",
+    storageBucket: "agendamento-a11d3.firebasestorage.app",
+    messagingSenderId: "31776903316",
+    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+};
+
+    const appSeguranca = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const authSeguranca = getAuth(appSeguranca);
+    const dbSeguranca = getFirestore(appSeguranca);
+
+    function paginaAtual() {
+        return window.location.pathname.split('/').pop() || 'index.html';
+    }
+
+    function criarBotaoSair(perfil) {
+        if (document.getElementById('btnSairSistema')) return;
+
+        const caixa = document.createElement('div');
+        caixa.id = 'caixaUsuarioSistema';
+        caixa.style.position = 'fixed';
+        caixa.style.top = '12px';
+        caixa.style.right = '12px';
+        caixa.style.zIndex = '9999';
+        caixa.style.display = 'flex';
+        caixa.style.gap = '8px';
+        caixa.style.alignItems = 'center';
+
+        const badge = document.createElement('span');
+        badge.textContent = (window.usuarioAtual?.nome || window.usuarioAtual?.usuario || 'Usuário') + ' • ' + perfil.toUpperCase();
+        badge.style.background = '#0f172a';
+        badge.style.color = 'white';
+        badge.style.borderRadius = '8px';
+        badge.style.padding = '8px 10px';
+        badge.style.fontSize = '12px';
+        badge.style.fontWeight = '700';
+
+        const btn = document.createElement('button');
+        btn.id = 'btnSairSistema';
+        btn.textContent = 'Sair';
+        btn.type = 'button';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '8px 12px';
+        btn.style.fontWeight = '700';
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', async () => {
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+        });
+
+        caixa.appendChild(badge);
+        caixa.appendChild(btn);
+        document.body.appendChild(caixa);
+    }
+
+    function aplicarPermissoesVisuais(perfil) {
+        const podeConfigurar = perfil === 'master' || perfil === 'admin';
+        const btnConfig = document.getElementById('btnAbrirConfig');
+        const painelConfig = document.getElementById('painelConfig');
+        if (!podeConfigurar) {
+            if (btnConfig) btnConfig.style.display = 'none';
+            if (painelConfig) painelConfig.style.display = 'none';
+        }
+
+        const linksUsuarios = document.querySelectorAll('[data-master-only="true"]');
+        linksUsuarios.forEach(el => el.style.display = perfil === 'master' ? '' : 'none');
+    }
+
+    window.usuarioAtual = null;
+    window.perfilUsuario = null;
+    window.podeConfigurarSistema = () => window.perfilUsuario === 'master' || window.perfilUsuario === 'admin';
+    window.podeGerenciarUsuarios = () => window.perfilUsuario === 'master';
+
+    window.registrarLog = async function(info) {
+        try {
+            if (!window.usuarioAtual) return;
+            await addDoc(collection(dbSeguranca, 'logs'), {
+                uid: window.usuarioAtual.uid,
+                usuario: window.usuarioAtual.usuario || '',
+                nomeUsuario: window.usuarioAtual.nome || '',
+                email: window.usuarioAtual.email || '',
+                perfil: window.usuarioAtual.perfil || '',
+                acao: info.acao || 'acao',
+                modulo: info.modulo || paginaAtual(),
+                paciente: info.paciente || '',
+                dataRegistro: info.dataRegistro || '',
+                detalhes: info.detalhes || '',
+                criadoEm: Timestamp.now()
+            });
+        } catch (erro) {
+            console.error('Erro ao registrar log:', erro);
+        }
+    };
+
+    onAuthStateChanged(authSeguranca, async (user) => {
+        if (!user) {
+            window.location.href = 'login.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        const snap = await getDoc(doc(dbSeguranca, 'usuarios', user.uid));
+        if (!snap.exists() || snap.data().ativo === false) {
+            alert('Seu usuário não está cadastrado ou está desativado. Fale com o administrador master.');
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+            return;
+        }
+
+        if (snap.data().precisaTrocarSenha === true) {
+            window.location.href = 'trocar_senha.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        window.usuarioAtual = { uid: user.uid, email: user.email, ...snap.data() };
+        window.perfilUsuario = window.usuarioAtual.perfil;
+        criarBotaoSair(window.perfilUsuario);
+        aplicarPermissoesVisuais(window.perfilUsuario);
+
+        if (paginaAtual() === 'usuarios.html' && window.perfilUsuario !== 'master') {
+            alert('Apenas o administrador master pode gerenciar usuários.');
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+
 </body>
 </html>

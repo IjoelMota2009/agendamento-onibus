@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Viagens - Transporte Saúde</title>
+  <style>
+    :root { --primary:#0f766e; --bg:#f4f7f6; --text:#1f2937; }
+    body { font-family:'Segoe UI',sans-serif; background:var(--bg); margin:0; padding:20px; color:var(--text); }
+    .container { max-width:1180px; margin:auto; }
+    .header { background:#1a1a1a; color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:20px; }
+    .header a { color:#ddd; text-decoration:none; font-weight:bold; }
+    .card { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:20px; }
+    .filtros { display:grid; grid-template-columns:1fr 1fr auto; gap:12px; align-items:end; }
+    label { font-weight:700; font-size:14px; }
+    input { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; }
+    button { border:none; border-radius:7px; padding:11px 14px; color:white; font-weight:800; cursor:pointer; }
+    .btn-gerar { background:var(--primary); }
+    .btn-print { background:#334155; margin-left:8px; }
+    .status { margin-top:10px; padding:10px; border-radius:6px; display:none; }
+    .info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .erro { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .resumo { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+    .box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; }
+    .box span { display:block; font-size:28px; font-weight:900; color:#0f766e; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; margin-top:14px; }
+    th,td { border:1px solid #e2e8f0; padding:8px; text-align:left; font-size:13px; }
+    th { background:#f8fafc; color:#334155; }
+    h2,h3 { margin-bottom:8px; }
+    .assinatura { display:none; grid-template-columns:1fr 1fr; gap:35px; margin-top:22px; }
+    .linha { border-top:1px solid #000; padding-top:6px; text-align:center; font-size:13px; }
+    @media(max-width:800px){ .filtros,.resumo{grid-template-columns:1fr;} }
+    @media print { .no-print{display:none!important;} body{background:white;padding:0;} .card{box-shadow:none;border:none;padding:0;} th,td{border:1px solid #000;} th{background:#f2f2f2!important;-webkit-print-color-adjust:exact;} .assinatura{display:grid;} }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header no-print">
+    <h1>Relatório de Viagens</h1>
+    <a href="index.html">← Voltar ao menu</a>
+  </div>
+
+  <div class="card no-print">
+    <div class="filtros">
+      <div><label for="dataInicio">Data inicial:</label><input type="date" id="dataInicio"></div>
+      <div><label for="dataFim">Data final:</label><input type="date" id="dataFim"></div>
+      <div><button class="btn-gerar" id="btnGerar">GERAR RELATÓRIO</button><button class="btn-print" id="btnImprimir">IMPRIMIR</button></div>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="card" id="areaRelatorio">
+    <h2 id="tituloRelatorio">Relatório</h2>
+    <div class="resumo">
+      <div class="box">Total de viagens<span id="totalViagens">0</span></div>
+      <div class="box">Pacientes confirmados<span id="totalPacientes">0</span></div>
+      <div class="box">Pessoas/Vagas<span id="totalPessoas">0</span></div>
+      <div class="box">Dias com transporte<span id="totalDias">0</span></div>
+    </div>
+
+    <h3>Resumo por dia</h3>
+    <table>
+      <thead><tr><th>Data</th><th>Ônibus</th><th>Carro</th><th>Hemodiálise</th><th>Total viagens</th><th>Pacientes</th><th>Pessoas/Vagas</th></tr></thead>
+      <tbody id="tbodyDias"><tr><td colspan="7">Gere o relatório.</td></tr></tbody>
+    </table>
+
+    <h3>Resumo por veículo/módulo</h3>
+    <table>
+      <thead><tr><th>Veículo/Módulo</th><th>Viagens</th><th>Pacientes</th><th>Pessoas/Vagas</th></tr></thead>
+      <tbody id="tbodyVeiculos"><tr><td colspan="4">Gere o relatório.</td></tr></tbody>
+    </table>
+
+    <div class="assinatura">
+      <div class="linha">Responsável pelo relatório</div>
+      <div class="linha">Supervisão</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey:"AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY", authDomain:"agendamento-a11d3.firebaseapp.com", projectId:"agendamento-a11d3", storageBucket:"agendamento-a11d3.firebasestorage.app", messagingSenderId:"31776903316", appId:"1:31776903316:web:73b72839fe54ce0d04a481" };
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(app); const db = getFirestore(app);
+
+const el = { inicio:document.getElementById('dataInicio'), fim:document.getElementById('dataFim'), status:document.getElementById('status'), titulo:document.getElementById('tituloRelatorio'), totalViagens:document.getElementById('totalViagens'), totalPacientes:document.getElementById('totalPacientes'), totalPessoas:document.getElementById('totalPessoas'), totalDias:document.getElementById('totalDias'), tbodyDias:document.getElementById('tbodyDias'), tbodyVeiculos:document.getElementById('tbodyVeiculos'), btnGerar:document.getElementById('btnGerar'), btnImprimir:document.getElementById('btnImprimir') };
+let configCarro={vagasTotal:20,capacidadeCarro:4};
+function hojeISO(){return new Date().toISOString().slice(0,10);} function dataBR(d){return d?d.split('-').reverse().join('/'):'';} function peso(i){return i.acompanhante==='SIM'?2:1;} function normalizar(t){return (t||'').trim().toUpperCase();} function isManha(h){return (h||'')<='11:30';} function vagas(lista){return lista.reduce((s,i)=>s+peso(i),0);} function mostrar(txt,t='info'){el.status.textContent=txt;el.status.className='status '+t;el.status.style.display='block';} function esconder(){el.status.style.display='none';}
+function minutos(h){ if(!h)return null; const [a,b]=h.split(':').map(Number); return Number.isFinite(a)&&Number.isFinite(b)?a*60+b:null; }
+function janela2h(lista,item){ const hs=[...lista,item].map(x=>minutos(x.horario)).filter(x=>x!==null); return hs.length<=1||(Math.max(...hs)-Math.min(...hs)<=120); }
+function ordenar(lista){return [...lista].sort((a,b)=>(normalizar(a.lugar||a.destino)).localeCompare(normalizar(b.lugar||b.destino)) || (a.horario||'').localeCompare(b.horario||'') || normalizar(a.paciente).localeCompare(normalizar(b.paciente)));}
+function montarCarros(lista){ const conf=ordenar(lista.filter(i=>i.confirmado)); const porDestino=new Map(); for(const i of conf){const k=normalizar(i.lugar)||'SEM DESTINO'; if(!porDestino.has(k))porDestino.set(k,[]); porDestino.get(k).push(i);} const carros=[]; for(const [,pacientes] of porDestino){ for(const p of pacientes){ let ok=false; for(const c of carros){ if(!c.pacientes.some(x=>normalizar(x.lugar)===normalizar(p.lugar)))continue; if(p.carroBaixo==='SIM'&&c.tipo!=='CARRO BAIXO')continue; if(vagas(c.pacientes)+peso(p)<=Number(configCarro.capacidadeCarro||4)&&janela2h(c.pacientes,p)){c.pacientes.push(p); if(p.carroBaixo==='SIM')c.tipo='CARRO BAIXO'; ok=true; break;} } if(!ok)carros.push({tipo:p.carroBaixo==='SIM'?'CARRO BAIXO':'A DEFINIR',pacientes:[p]}); } } return carros; }
+function datasEntre(inicio,fim){ const arr=[]; const d=new Date(inicio+'T00:00:00'); const e=new Date(fim+'T00:00:00'); while(d<=e){arr.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1);} return arr; }
+async function buscar(nome,data){ const q=query(collection(db,nome),where('data','==',data),where('status','==','ativo')); const s=await getDocs(q); return s.docs.map(d=>({id:d.id,...d.data()})); }
+async function carregarConfig(){ const s=await getDoc(doc(db,'configuracoes','carro')); if(s.exists()) configCarro={...configCarro,...s.data()}; }
+function somaObj(obj,key,viagens,pac,pessoas){ if(!obj[key]) obj[key]={viagens:0,pacientes:0,pessoas:0}; obj[key].viagens+=viagens; obj[key].pacientes+=pac; obj[key].pessoas+=pessoas; }
+async function gerar(){ const inicio=el.inicio.value, fim=el.fim.value; if(!inicio||!fim){alert('Escolha data inicial e final.');return;} if(inicio>fim){alert('Data inicial não pode ser maior que a final.');return;} mostrar('Gerando relatório...', 'info'); await carregarConfig(); const datas=datasEntre(inicio,fim); const linhas=[]; const porVeiculo={}; let totalViagens=0,totalPac=0,totalPes=0,diasCom=0;
+ for(const data of datas){ const [onibus,carro,hemo]=await Promise.all([buscar('agendamentos_onibus',data),buscar('agendamentos_carro',data),buscar('agendamentos_hemodialise',data)]); const onConf=onibus.filter(i=>i.confirmado); const o5=onConf.filter(i=>isManha(i.horario)); const o10=onConf.filter(i=>!isManha(i.horario)); const carros=montarCarros(carro); const cConf=carro.filter(i=>i.confirmado); const hConf=hemo.filter(i=>i.confirmado); const vOn=(o5.length?1:0)+(o10.length?1:0); const vCar=carros.length; const vH=hConf.length?1:0; const viagens=vOn+vCar+vH; const pac=onConf.length+cConf.length+hConf.length; const pes=vagas(onConf)+vagas(cConf)+vagas(hConf); if(viagens>0)diasCom++; totalViagens+=viagens; totalPac+=pac; totalPes+=pes; if(o5.length)somaObj(porVeiculo,'Ônibus 5h',1,o5.length,vagas(o5)); if(o10.length)somaObj(porVeiculo,'Ônibus 10h',1,o10.length,vagas(o10)); if(vCar)somaObj(porVeiculo,'Carro',vCar,cConf.length,vagas(cConf)); if(vH)somaObj(porVeiculo,'Hemodiálise',1,hConf.length,vagas(hConf)); linhas.push(`<tr><td>${dataBR(data)}</td><td>${vOn} viagem(ns) | ${onConf.length} pac. | ${vagas(onConf)} pessoas</td><td>${vCar} carro(s) | ${cConf.length} pac. | ${vagas(cConf)} pessoas</td><td>${vH} viagem(ns) | ${hConf.length} pac. | ${vagas(hConf)} pessoas</td><td>${viagens}</td><td>${pac}</td><td>${pes}</td></tr>`); }
+ el.titulo.textContent=`Relatório de ${dataBR(inicio)} até ${dataBR(fim)}`; el.totalViagens.textContent=totalViagens; el.totalPacientes.textContent=totalPac; el.totalPessoas.textContent=totalPes; el.totalDias.textContent=diasCom; el.tbodyDias.innerHTML=linhas.join('')||'<tr><td colspan="7">Nenhum dado no período.</td></tr>'; el.tbodyVeiculos.innerHTML=Object.entries(porVeiculo).map(([k,v])=>`<tr><td>${k}</td><td>${v.viagens}</td><td>${v.pacientes}</td><td>${v.pessoas}</td></tr>`).join('')||'<tr><td colspan="4">Nenhum veículo/módulo com viagens.</td></tr>'; esconder(); }
+function sairBtn(){ if(document.getElementById('btnSairSistema'))return; const b=document.createElement('button'); b.id='btnSairSistema'; b.textContent='Sair'; b.style.cssText='position:fixed;top:12px;right:12px;z-index:9999;background:#dc2626;color:white;border:none;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer'; b.onclick=async()=>{await signOut(auth);location.href='login.html'}; document.body.appendChild(b); }
+onAuthStateChanged(auth, async user=>{ if(!user){location.href='login.html?next=relatorio_viagens.html';return;} const s=await getDoc(doc(db,'usuarios',user.uid)); if(!s.exists()||s.data().ativo===false){alert('Usuário inválido.'); await signOut(auth); location.href='login.html';return;} if(s.data().precisaTrocarSenha===true){location.href='trocar_senha.html?next=relatorio_viagens.html';return;} sairBtn(); el.inicio.value=hojeISO(); el.fim.value=hojeISO(); });
+el.btnGerar.addEventListener('click',()=>gerar().catch(e=>{console.error(e);mostrar('Erro ao gerar: '+e.message,'erro')})); el.btnImprimir.addEventListener('click',()=>window.print());
+</script>
+</body>
+</html>

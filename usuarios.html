@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuários - Transporte Saúde</title>
+  <style>
+    :root { --primary:#334155; --success:#16a34a; --danger:#dc2626; --bg:#f4f7f6; }
+    body { font-family:'Segoe UI',sans-serif; background:var(--bg); margin:0; padding:20px; }
+    .container { max-width:1000px; margin:auto; }
+    .header { background:#1a1a1a; color:white; padding:15px; border-radius:8px; text-align:center; margin-bottom:20px; }
+    .header a { color:#ddd; text-decoration:none; font-size:14px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .card { background:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:20px; }
+    h3 { color:var(--primary); margin-top:0; border-bottom:2px solid #f0f0f0; padding-bottom:10px; }
+    label { display:block; margin:10px 0 5px; font-weight:700; color:#334155; }
+    input, select { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; }
+    button { padding:11px 14px; border:none; border-radius:6px; font-weight:800; cursor:pointer; color:white; margin-top:12px; }
+    .btn-save { background:var(--success); width:100%; }
+    .btn-danger { background:var(--danger); }
+    .btn-secondary { background:#64748b; }
+    .usuario { border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:8px; background:#fff; }
+    .usuario strong { text-transform:uppercase; color:#0f172a; }
+    .meta { color:#475569; font-size:13px; margin-top:4px; }
+    .msg { display:none; margin-top:10px; padding:10px; border-radius:6px; font-size:14px; }
+    .ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .erro { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    @media (max-width:850px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Gerenciar Usuários</h1>
+    <a href="index.html">← Voltar ao menu</a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Cadastrar novo usuário</h3>
+      <label for="nome">Nome completo</label>
+      <input id="nome" placeholder="Ex: Maria Silva">
+
+      <label for="usuario">Usuário de login</label>
+      <input id="usuario" placeholder="Ex: maria">
+
+      <label for="senha">Senha inicial</label>
+      <input id="senha" type="password" placeholder="Mínimo 6 caracteres">
+
+      <label for="perfil">Perfil</label>
+      <select id="perfil">
+        <option value="agendante">Agendante</option>
+        <option value="admin">Admin</option>
+        <option value="master">Admin Master</option>
+      </select>
+
+      <button class="btn-save" id="btnCriar">CRIAR USUÁRIO</button>
+      <div id="mensagem" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Usuários cadastrados</h3>
+      <div id="listaUsuarios">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+    authDomain: "agendamento-a11d3.firebaseapp.com",
+    projectId: "agendamento-a11d3",
+    storageBucket: "agendamento-a11d3.firebasestorage.app",
+    messagingSenderId: "31776903316",
+    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // app secundário para criar usuário sem deslogar o master atual
+  const appCadastro = initializeApp(firebaseConfig, 'cadastroUsuariosSecundario');
+  const authCadastro = getAuth(appCadastro);
+
+  const el = {
+    nome: document.getElementById('nome'),
+    usuario: document.getElementById('usuario'),
+    senha: document.getElementById('senha'),
+    perfil: document.getElementById('perfil'),
+    btnCriar: document.getElementById('btnCriar'),
+    mensagem: document.getElementById('mensagem'),
+    listaUsuarios: document.getElementById('listaUsuarios')
+  };
+
+  let usuarioAtual = null;
+
+  function emailDoUsuario(usuario) {
+    return usuario.trim().toLowerCase().replace(/\s+/g, '') + '@sistema.local';
+  }
+
+  function mostrar(texto, tipo) {
+    el.mensagem.textContent = texto;
+    el.mensagem.className = 'msg ' + tipo;
+  }
+
+  async function registrarLog(info) {
+    if (!usuarioAtual) return;
+    await addDoc(collection(db, 'logs'), {
+      uid: usuarioAtual.uid,
+      usuario: usuarioAtual.usuario || '',
+      nomeUsuario: usuarioAtual.nome || '',
+      perfil: usuarioAtual.perfil || '',
+      acao: info.acao,
+      modulo: 'usuarios',
+      paciente: '',
+      dataRegistro: '',
+      detalhes: info.detalhes || '',
+      criadoEm: Timestamp.now()
+    });
+  }
+
+  function criarBotaoSair() {
+    if (document.getElementById('btnSairSistema')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnSairSistema';
+    btn.textContent = 'Sair';
+    btn.type = 'button';
+    btn.style.position = 'fixed'; btn.style.top = '12px'; btn.style.right = '12px'; btn.style.zIndex = '9999';
+    btn.style.background = '#dc2626'; btn.style.color = 'white'; btn.style.border = 'none'; btn.style.borderRadius = '8px'; btn.style.padding = '8px 12px'; btn.style.fontWeight = '700'; btn.style.cursor = 'pointer';
+    btn.addEventListener('click', async () => { await signOut(auth); window.location.href='login.html'; });
+    document.body.appendChild(btn);
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href='login.html?next=usuarios.html'; return; }
+    const snap = await getDoc(doc(db, 'usuarios', user.uid));
+    if (snap.exists() && snap.data().precisaTrocarSenha === true) { window.location.href='trocar_senha.html?next=usuarios.html'; return; }
+    if (!snap.exists() || snap.data().ativo === false || snap.data().perfil !== 'master') {
+      alert('Apenas o administrador master pode acessar esta tela.');
+      window.location.href='index.html';
+      return;
+    }
+    usuarioAtual = { uid: user.uid, email: user.email, ...snap.data() };
+    criarBotaoSair();
+    carregarUsuarios();
+  });
+
+  function carregarUsuarios() {
+    onSnapshot(collection(db, 'usuarios'), snapshot => {
+      const lista = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => (a.nome || '').localeCompare(b.nome || ''));
+      el.listaUsuarios.innerHTML = '';
+      if (lista.length === 0) {
+        el.listaUsuarios.textContent = 'Nenhum usuário encontrado.';
+        return;
+      }
+      for (const u of lista) {
+        const div = document.createElement('div');
+        div.className = 'usuario';
+        div.innerHTML = `<strong>${u.nome || u.usuario || '-'}</strong><div class="meta">Usuário: ${u.usuario || '-'} | Perfil: ${(u.perfil || '').toUpperCase()} | Status: ${u.ativo === false ? 'DESATIVADO' : 'ATIVO'}</div>`;
+        const btn = document.createElement('button');
+        btn.className = u.ativo === false ? 'btn-secondary' : 'btn-danger';
+        btn.textContent = u.ativo === false ? 'Ativar' : 'Desativar';
+        btn.addEventListener('click', async () => {
+          if (u.id === usuarioAtual.uid) return alert('Você não pode desativar o próprio usuário logado.');
+          const novoStatus = !(u.ativo === false);
+          await updateDoc(doc(db, 'usuarios', u.id), { ativo: !novoStatus, atualizadoEm: Timestamp.now() });
+          await registrarLog({ acao: !novoStatus ? 'ativou_usuario' : 'desativou_usuario', detalhes: `${u.usuario || u.nome}` });
+        });
+        div.appendChild(btn);
+        el.listaUsuarios.appendChild(div);
+      }
+    });
+  }
+
+  async function criarUsuario() {
+    const nome = el.nome.value.trim();
+    const usuario = el.usuario.value.trim().toLowerCase().replace(/\s+/g, '');
+    const senha = el.senha.value;
+    const perfil = el.perfil.value;
+
+    if (!nome || !usuario || !senha) return mostrar('Preencha nome, usuário e senha.', 'erro');
+    if (senha.length < 6) return mostrar('A senha precisa ter pelo menos 6 caracteres.', 'erro');
+
+    el.btnCriar.disabled = true;
+    el.btnCriar.textContent = 'CRIANDO...';
+    try {
+      const email = emailDoUsuario(usuario);
+      const cred = await createUserWithEmailAndPassword(authCadastro, email, senha);
+      await setDoc(doc(db, 'usuarios', cred.user.uid), {
+        nome,
+        usuario,
+        email,
+        perfil,
+        ativo: true,
+        precisaTrocarSenha: true,
+        criadoEm: Timestamp.now(),
+        criadoPorUid: usuarioAtual.uid,
+        criadoPorUsuario: usuarioAtual.usuario || ''
+      });
+      await signOut(authCadastro);
+      await registrarLog({ acao: 'criou_usuario', detalhes: `${usuario} | perfil: ${perfil}` });
+      el.nome.value = ''; el.usuario.value = ''; el.senha.value = ''; el.perfil.value = 'agendante';
+      mostrar('Usuário criado com sucesso.', 'ok');
+    } catch (erro) {
+      console.error(erro);
+      mostrar('Erro ao criar usuário: ' + erro.message, 'erro');
+    } finally {
+      el.btnCriar.disabled = false;
+      el.btnCriar.textContent = 'CRIAR USUÁRIO';
+    }
+  }
+
+  el.btnCriar.addEventListener('click', criarUsuario);
+</script>
+</body>
+</html>
