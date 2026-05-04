@@ -31,7 +31,17 @@
     .linha { border-top:1px solid #000; padding-top:6px; text-align:center; font-size:13px; }
     @media(max-width:800px){ .filtros,.resumo{grid-template-columns:1fr;} }
     @media print { .no-print{display:none!important;} body{background:white;padding:0;} .card{box-shadow:none;border:none;padding:0;} th,td{border:1px solid #000;} th{background:#f2f2f2!important;-webkit-print-color-adjust:exact;} .assinatura{display:grid;} }
-  </style>
+  
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 <body>
 <div class="container">
@@ -88,7 +98,7 @@ const auth = getAuth(app); const db = getFirestore(app);
 
 const el = { inicio:document.getElementById('dataInicio'), fim:document.getElementById('dataFim'), status:document.getElementById('status'), titulo:document.getElementById('tituloRelatorio'), totalViagens:document.getElementById('totalViagens'), totalPacientes:document.getElementById('totalPacientes'), totalPessoas:document.getElementById('totalPessoas'), totalDias:document.getElementById('totalDias'), tbodyDias:document.getElementById('tbodyDias'), tbodyVeiculos:document.getElementById('tbodyVeiculos'), btnGerar:document.getElementById('btnGerar'), btnImprimir:document.getElementById('btnImprimir') };
 let configCarro={vagasTotal:20,capacidadeCarro:4};
-function hojeISO(){return new Date().toISOString().slice(0,10);} function dataBR(d){return d?d.split('-').reverse().join('/'):'';} function peso(i){return i.acompanhante==='SIM'?2:1;} function normalizar(t){return (t||'').trim().toUpperCase();} function isManha(h){return (h||'')<='11:30';} function vagas(lista){return lista.reduce((s,i)=>s+peso(i),0);} function mostrar(txt,t='info'){el.status.textContent=txt;el.status.className='status '+t;el.status.style.display='block';} function esconder(){el.status.style.display='none';}
+function hojeISO(){return new Date().toISOString().slice(0,10);} function dataBR(d){return d?d.split('-').reverse().join('/'):'';} function peso(i){let p=1;if(i.acompanhante==='SIM')p+=1;if(i.crianca==='SIM')p+=1;return p;} function normalizar(t){return (t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[çÇ]/g,'C').trim().toUpperCase();} function isManha(h){return (h||'')<='11:30';} function vagas(lista){return lista.reduce((s,i)=>s+peso(i),0);} function mostrar(txt,t='info'){el.status.textContent=txt;el.status.className='status '+t;el.status.style.display='block';} function esconder(){el.status.style.display='none';}
 function minutos(h){ if(!h)return null; const [a,b]=h.split(':').map(Number); return Number.isFinite(a)&&Number.isFinite(b)?a*60+b:null; }
 function janela2h(lista,item){ const hs=[...lista,item].map(x=>minutos(x.horario)).filter(x=>x!==null); return hs.length<=1||(Math.max(...hs)-Math.min(...hs)<=120); }
 function ordenar(lista){return [...lista].sort((a,b)=>(normalizar(a.lugar||a.destino)).localeCompare(normalizar(b.lugar||b.destino)) || (a.horario||'').localeCompare(b.horario||'') || normalizar(a.paciente).localeCompare(normalizar(b.paciente)));}
@@ -104,5 +114,44 @@ function sairBtn(){ if(document.getElementById('btnSairSistema'))return; const b
 onAuthStateChanged(auth, async user=>{ if(!user){location.href='login.html?next=relatorio_viagens.html';return;} const s=await getDoc(doc(db,'usuarios',user.uid)); if(!s.exists()||s.data().ativo===false){alert('Usuário inválido.'); await signOut(auth); location.href='login.html';return;} if(s.data().precisaTrocarSenha===true){location.href='trocar_senha.html?next=relatorio_viagens.html';return;} sairBtn(); el.inicio.value=hojeISO(); el.fim.value=hojeISO(); });
 el.btnGerar.addEventListener('click',()=>gerar().catch(e=>{console.error(e);mostrar('Erro ao gerar: '+e.message,'erro')})); el.btnImprimir.addEventListener('click',()=>window.print());
 </script>
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
+</script>
+
 </body>
 </html>

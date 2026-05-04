@@ -103,7 +103,17 @@
             th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
             .header-print { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 5px; }
         }
-    </style>
+    
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 <body>
 <div class="container">
@@ -391,7 +401,7 @@
     }
 
     function normalizarLugar(lugar) {
-        return (lugar || '').trim().toUpperCase();
+        return (lugar || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
     }
 
     function ordenar(lista) {
@@ -579,12 +589,12 @@
         if (salvando) return;
 
         const data = el.data.value;
-        const paciente = el.paciente.value.trim().toUpperCase();
+        const paciente = normalizarLugar(el.paciente.value);
         const temAcomp = el.acompanhante.checked;
         const telefone = el.telefone.value.trim();
-        const lugar = el.lugar.value.trim().toUpperCase();
+        const lugar = normalizarLugar(el.lugar.value);
         const horario = el.horario.value;
-        const obs = el.obs.value.trim();
+        const obs = normalizarLugar(el.obs.value);
         const isLondrina = el.londrina.checked;
 
         if (!data || !paciente || !horario) {
@@ -1153,6 +1163,45 @@
             window.location.href = 'index.html';
         }
     });
+</script>
+
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
 </script>
 
 </body>

@@ -314,6 +314,16 @@
             border: 1px solid #b45309;
         }
 
+        .tag-crianca {
+            color: #db2777;
+            border: 1px solid #db2777;
+        }
+
+        .tag-fixo {
+            color: #2563eb;
+            border: 1px solid #2563eb;
+        }
+
         .status-box {
             margin-top: 10px;
             padding: 10px;
@@ -408,7 +418,17 @@
                 padding-bottom: 5px;
             }
         }
-    </style>
+    
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 
 <body>
@@ -469,6 +489,16 @@
                         <div class="check-box">
                             <input type="checkbox" id="carroBaixo">
                             <label for="carroBaixo">Vai de carro baixo</label>
+                        </div>
+
+                        <div class="check-box">
+                            <input type="checkbox" id="crianca">
+                            <label for="crianca">Criança / bebê conforto</label>
+                        </div>
+
+                        <div class="check-box">
+                            <input type="checkbox" id="fixo">
+                            <label for="fixo">Paciente fixo</label>
                         </div>
                     </div>
                 </div>
@@ -587,6 +617,8 @@
             obs: document.getElementById('obs'),
             acompanhante: document.getElementById('acompanhante'),
             carroBaixo: document.getElementById('carroBaixo'),
+            crianca: document.getElementById('crianca'),
+            fixo: document.getElementById('fixo'),
             btnSalvar: document.getElementById('btnSalvar'),
             btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
             btnVerLista: document.getElementById('btnVerLista'),
@@ -626,7 +658,7 @@
         }
 
         function normalizar(texto) {
-            return (texto || '').trim().toUpperCase();
+            return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
         }
 
         function limparCampos() {
@@ -638,10 +670,14 @@
             el.obs.value = '';
             el.acompanhante.checked = false;
             el.carroBaixo.checked = false;
+            el.crianca.checked = false;
+            el.fixo.checked = false;
         }
 
         function contarConfirmados(lista = db) {
-            return lista.filter(item => item.status === 'ativo' && item.confirmado).length;
+            return lista
+                .filter(item => item.status === 'ativo' && item.confirmado)
+                .reduce((total, item) => total + pesoVagas(item), 0);
         }
 
         function ordenar(lista) {
@@ -665,7 +701,10 @@
         }
 
         function pesoVagas(item) {
-            return item.acompanhante === 'SIM' ? 2 : 1;
+            let vagas = 1;
+            if (item.acompanhante === 'SIM') vagas += 1;
+            if (item.crianca === 'SIM') vagas += 1;
+            return vagas;
         }
 
         function vagasUsadas(lista) {
@@ -835,6 +874,12 @@
                     ${item.carroBaixo === 'SIM'
                         ? '<span class="tag tag-carro-baixo">CARRO BAIXO</span>'
                         : ''}
+                    ${item.crianca === 'SIM'
+                        ? '<span class="tag tag-crianca">CRIANÇA</span>'
+                        : ''}
+                    ${item.fixo === 'SIM'
+                        ? '<span class="tag tag-fixo">FIXO</span>'
+                        : ''}
                     <br>
                     <small style="font-weight:400;color:#64748b">
                         <b>Busca:</b> ${item.localBusca || ''}
@@ -990,12 +1035,14 @@
                 data,
                 paciente,
                 telefone: el.telefone.value.trim(),
-                localBusca: el.localBusca.value.trim(),
+                localBusca: normalizar(el.localBusca.value),
                 lugar: normalizar(el.lugar.value),
                 horario,
-                obs: el.obs.value.trim(),
+                obs: normalizar(el.obs.value),
                 acompanhante: el.acompanhante.checked ? 'SIM' : 'NÃO',
-                carroBaixo: el.carroBaixo.checked ? 'SIM' : 'NÃO'
+                carroBaixo: el.carroBaixo.checked ? 'SIM' : 'NÃO',
+                crianca: el.crianca.checked ? 'SIM' : 'NÃO',
+                fixo: el.fixo.checked ? 'SIM' : 'NÃO'
             };
         }
 
@@ -1041,9 +1088,9 @@
                 }
 
                 let confirmado = true;
-                const confirmados = contarConfirmados();
+                const vagasSeConfirmar = contarConfirmados() + pesoVagas(dados);
 
-                if (confirmados >= limiteCarro) {
+                if (vagasSeConfirmar > limiteCarro) {
                     const continuar = confirm('As vagas confirmadas já estão preenchidas. Salvar como DESMARCADO?');
                     if (!continuar) return;
                     confirmado = false;
@@ -1090,6 +1137,8 @@
             el.obs.value = item.obs || '';
             el.acompanhante.checked = item.acompanhante === 'SIM';
             el.carroBaixo.checked = item.carroBaixo === 'SIM';
+            el.crianca.checked = item.crianca === 'SIM';
+            el.fixo.checked = item.fixo === 'SIM';
 
             el.btnSalvar.textContent = 'SALVAR EDIÇÃO';
             el.btnCancelarEdicao.style.display = 'block';
@@ -1122,7 +1171,7 @@
                 if (!ok) return;
             }
 
-            if (novoValor && contarConfirmados() >= limiteCarro) {
+            if (novoValor && (contarConfirmados() + pesoVagas(item)) > limiteCarro) {
                 alert('Limite de ' + limiteCarro + ' vagas confirmadas atingido.');
                 return;
             }
@@ -1207,6 +1256,8 @@
                             <th>Telefone</th>
                             <th>Vagas</th>
                             <th>Carro baixo</th>
+                            <th>Criança</th>
+                            <th>Fixo</th>
                             <th>Obs.</th>
                         </tr>
                     </thead>
@@ -1221,8 +1272,10 @@
                         <td>${item.localBusca || ''}</td>
                         <td>${item.lugar || ''}</td>
                         <td>${item.telefone || ''}</td>
-                        <td style="text-align:center">${pesoVagas(item)}${item.acompanhante === 'SIM' ? ' (ACOMP.)' : ''}</td>
+                        <td style="text-align:center">${pesoVagas(item)}${item.acompanhante === 'SIM' ? ' (ACOMP.)' : ''}${item.crianca === 'SIM' ? ' + CRIANÇA' : ''}</td>
                         <td style="text-align:center">${item.carroBaixo === 'SIM' ? 'SIM' : 'NÃO'}</td>
+                        <td style="text-align:center">${item.crianca === 'SIM' ? 'SIM' : 'NÃO'}</td>
+                        <td style="text-align:center">${item.fixo === 'SIM' ? 'SIM' : 'NÃO'}</td>
                         <td>${item.obs || ''}</td>
                     </tr>
                 `;
@@ -1297,12 +1350,12 @@
             }
 
             const carros = montarCarros(confirmadosLista);
-            const confirmados = confirmadosLista.length;
+            const vagasConfirmadas = vagasUsadas(confirmadosLista);
             const dataBr = dataAtual.split('-').reverse().join('/');
 
             el.relatorioArea.innerHTML =
-                viaRelatorio(carros, '1ª VIA', dataBr, confirmados) +
-                viaRelatorio(carros, '2ª VIA', dataBr, confirmados);
+                viaRelatorio(carros, '1ª VIA', dataBr, vagasConfirmadas) +
+                viaRelatorio(carros, '2ª VIA', dataBr, vagasConfirmadas);
 
             setTimeout(() => window.print(), 300);
         }
@@ -1456,6 +1509,45 @@
             window.location.href = 'index.html';
         }
     });
+</script>
+
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
 </script>
 
 </body>

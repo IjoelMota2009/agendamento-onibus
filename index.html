@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transporte Saúde</title>
   <style>
@@ -142,7 +142,17 @@
         font-size: 18px;
       }
     }
-  </style>
+  
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 <body>
   <div class="container">
@@ -262,5 +272,45 @@
       criarBotaoSair();
     });
   </script>
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
+</script>
+
 </body>
 </html>
+

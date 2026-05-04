@@ -26,7 +26,17 @@
     .ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
     .erro { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
     @media (max-width:850px) { .grid { grid-template-columns:1fr; } }
-  </style>
+  
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 <body>
 <div class="container">
@@ -98,6 +108,11 @@
   };
 
   let usuarioAtual = null;
+
+
+  function normalizarTexto(valor) {
+    return (valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
+  }
 
   function emailDoUsuario(usuario) {
     return usuario.trim().toLowerCase().replace(/\s+/g, '') + '@sistema.local';
@@ -179,8 +194,8 @@
   }
 
   async function criarUsuario() {
-    const nome = el.nome.value.trim();
-    const usuario = el.usuario.value.trim().toLowerCase().replace(/\s+/g, '');
+    const nome = normalizarTexto(el.nome.value);
+    const usuario = normalizarTexto(el.usuario.value).toLowerCase().replace(/\s+/g, '');
     const senha = el.senha.value;
     const perfil = el.perfil.value;
 
@@ -218,5 +233,44 @@
 
   el.btnCriar.addEventListener('click', criarUsuario);
 </script>
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
+</script>
+
 </body>
 </html>

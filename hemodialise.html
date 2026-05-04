@@ -291,7 +291,17 @@
             th, td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 11px; }
             th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
         }
-    </style>
+    
+/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
+@media print {
+    #caixaUsuarioSistema,
+    #btnSairSistema,
+    .no-print {
+        display: none !important;
+    }
+}
+
+</style>
 </head>
 <body>
 <div class="container">
@@ -544,7 +554,7 @@
     }
 
     function normalizarTexto(txt) {
-        return (txt || '').trim().toUpperCase();
+        return (txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
     }
 
     function pesoRegistro(item) {
@@ -811,7 +821,7 @@
             horario: el.horario.value,
             busca: normalizarTexto(el.busca.value),
             destino: normalizarTexto(el.destino.value),
-            obs: el.obs.value.trim(),
+            obs: normalizarTexto(el.obs.value),
             acompanhante: el.acompanhante.checked ? 'SIM' : 'NÃO',
             diasSemana: diasSelecionados()
         };
@@ -1457,6 +1467,45 @@
             window.location.href = 'index.html';
         }
     });
+</script>
+
+
+<script>
+// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
+(function () {
+    function padronizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[çÇ]/g, 'C')
+            .toUpperCase();
+    }
+
+    function deveIgnorarCampo(campo) {
+        const tipo = (campo.type || '').toLowerCase();
+        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
+    }
+
+    function aplicarPadrao(campo) {
+        if (!campo || deveIgnorarCampo(campo)) return;
+        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
+        const inicio = campo.selectionStart;
+        const fim = campo.selectionEnd;
+        const novoValor = padronizarTexto(campo.value);
+        if (campo.value !== novoValor) {
+            campo.value = novoValor;
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('input', function (evento) {
+        aplicarPadrao(evento.target);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
+    });
+})();
 </script>
 
 </body>
