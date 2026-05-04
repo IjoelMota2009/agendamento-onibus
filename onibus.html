@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transporte Saúde - Gestão Final</title>
+    <style>
+        :root { --primary: #0056b3; --success: #28a745; --danger: #dc3545; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { background: #1a1a1a; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: var(--primary); }
+        
+        .header-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-card h3 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            color: var(--primary);
+        }
+
+        .btn-config {
+            background: #334155;
+            color: white;
+            width: auto;
+            padding: 7px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-config:hover {
+            opacity: 0.9;
+        }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .search-box { margin-bottom: 15px; }
+        .search-box input { border: 2px solid var(--primary); background: #f0f7ff; font-weight: bold; }
+        .check-box-group { display: flex; gap: 10px; grid-column: span 2; }
+        .check-box { flex: 1; display: flex; align-items: center; gap: 8px; background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee; }
+        .btn { padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
+        .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
+        .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
+        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 11px; margin-left: 5px; }
+        .btn-cancel { background: #6b7280; width: 100%; margin-top: 8px; }
+.config-panel { display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin: 10px 0 15px; }
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-config-save { background: #16a34a; width: 100%; margin-top: 10px; }
+        .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
+        .vagas-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .vagas-box { padding: 15px; border-radius: 8px; text-align: center; color: white; }
+        .manha { background: #0284c7; }
+        .tarde { background: #d97706; }
+        .vagas-numero { font-size: 22px; font-weight: bold; display: block; }
+        #listaConfirmacao { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        .item-confirmar { display: flex; align-items: center; padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 6px; background: #fff; }
+        .nome-paciente { flex: 1; font-weight: 500; font-size: 15px; text-transform: uppercase; }
+        .hora-paciente { width: 70px; text-align: center; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 0 10px; }
+        .check-confirmar { width: 22px; height: 22px; cursor: pointer; margin-right: 10px; }
+        .tag { font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+        .tag-londrina { color: #dc2626; border: 1px solid #dc2626; }
+        .tag-acomp { color: #059669; border: 1px solid #059669; }
+        .status-box { margin-top: 10px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
+        .status-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-erro { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .loading { opacity: 0.7; pointer-events: none; }
+
+        .busca-geral-card { margin-top: 20px; }
+        .busca-geral-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 12px; }
+        .btn-search { background: #0f766e; padding-left: 18px; padding-right: 18px; }
+        .resultado-geral { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; display: flex; align-items: center; gap: 10px; }
+        .resultado-info { flex: 1; }
+        .resultado-nome { font-weight: 700; text-transform: uppercase; color: #0f172a; }
+        .resultado-meta { font-size: 13px; color: #475569; margin-top: 3px; }
+        .editando-banner { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: 700; display: none; }
+        @media (max-width: 700px) {
+            .busca-geral-actions { grid-template-columns: 1fr; }
+            .resultado-geral { align-items: flex-start; flex-direction: column; }
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background: white; }
+            .onibus-section { page-break-before: always; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
+            .onibus-section:first-child { page-break-before: auto; }
+            .onibus-section:last-child { border-bottom: none; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 11px; }
+            th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+            .header-print { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header no-print">
+        <h1>SISTEMA DE TRANSPORTE - SAÚDE</h1>
+        <a href="index.html">← Voltar ao menu</a>
+    </div>
+
+    <div class="main-grid no-print">
+        <div class="card">
+            <h3>1. Cadastrar Paciente</h3>
+            <div id="editandoBanner" class="editando-banner"></div>
+            <div class="form-row">
+                <div style="grid-column: span 2;">
+                    <label for="data">Data da Viagem:</label>
+                    <input type="date" id="data">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label for="paciente">Nome do Paciente:</label>
+                    <input type="text" id="paciente" placeholder="Nome Completo">
+                </div>
+                <div>
+                    <label for="telefone">Telefone:</label>
+                    <input type="text" id="telefone" placeholder="(00) 00000-0000">
+                </div>
+                <div>
+                    <label for="lugar">Destino:</label>
+                    <input type="text" id="lugar" placeholder="Ex: HC, HU, ICL">
+                </div>
+                <div>
+                    <label for="horario">Horário da Consulta:</label>
+                    <input type="time" id="horario">
+                </div>
+                <div>
+                    <label for="obs">Observação:</label>
+                    <input type="text" id="obs" placeholder="Vila, rua, referência...">
+                </div>
+                <div class="check-box-group">
+                    <div class="check-box">
+                        <input type="checkbox" id="acompanhante">
+                        <label for="acompanhante">Com Acompanhante</label>
+                    </div>
+                    <div class="check-box">
+                        <input type="checkbox" id="londrina">
+                        <label for="londrina">Londrina</label>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-save" id="btnSalvar">SALVAR AGENDAMENTO</button>
+            <button class="btn btn-cancel" id="btnCancelarEdicao" style="display:none">CANCELAR EDIÇÃO</button>
+            <div id="statusMensagem" class="status-box"></div>
+        </div>
+
+        <div class="card">
+            <div class="header-card">
+                <h3>2. Controle do Dia</h3>
+                <button class="btn btn-config" id="btnAbrirConfig" type="button">⚙️ Configurações</button>
+            </div>
+            <div id="statusData" style="text-align: center; font-weight: bold; margin-bottom: 15px; color: var(--primary);">Selecione uma data</div>
+            <div class="config-panel" id="painelConfig">
+                <div class="config-grid">
+                    <div>
+                        <label for="configLimiteManha">Vagas ônibus 5h:</label>
+                        <input type="number" id="configLimiteManha" min="1" value="32">
+                    </div>
+                    <div>
+                        <label for="configLimiteTarde">Vagas ônibus 10h:</label>
+                        <input type="number" id="configLimiteTarde" min="1" value="28">
+                    </div>
+                </div>
+                <button class="btn btn-config-save" id="btnSalvarConfig" type="button">SALVAR CONFIGURAÇÃO</button>
+            </div>
+            <div class="vagas-container">
+                <div class="vagas-box manha">
+                    <span>ÔNIBUS 5H CONFIRMADOS (consulta até 11:30)</span>
+                    <span class="vagas-numero" id="vManha">0 / 32</span>
+                </div>
+                <div class="vagas-box tarde">
+                    <span>ÔNIBUS 10H CONFIRMADOS (consulta após 11:30)</span>
+                    <span class="vagas-numero" id="vTarde">0 / 28</span>
+                </div>
+            </div>
+
+            
+
+            <button class="btn btn-view" id="btnVerLista">VER LISTA E PESQUISAR</button>
+
+            <div id="listaConfirmacao">
+                <div class="search-box">
+                    <input type="text" id="inputBusca" placeholder="🔍 Pesquisar nome na lista...">
+                </div>
+                <div id="corpoLista"></div>
+                <button class="btn btn-print" id="btnGerarRelatorio">GERAR PLANILHA PARA IMPRESSÃO</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card no-print busca-geral-card">
+        <h3>3. Busca Geral por Nome</h3>
+        <div class="busca-geral-actions">
+            <input type="text" id="inputBuscaGeral" placeholder="Digite parte do nome para procurar em todos os dias...">
+            <button class="btn btn-search" id="btnBuscaGeral">BUSCAR</button>
+        </div>
+        <div id="resultadoBuscaGeral" style="font-size:14px;color:#475569;">Digite um nome e clique em buscar.</div>
+    </div>
+
+    <div id="relatorioArea"></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        query,
+        where,
+        updateDoc,
+        doc,
+        Timestamp,
+        onSnapshot,
+        getDocs,
+        setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+        authDomain: "agendamento-a11d3.firebaseapp.com",
+        projectId: "agendamento-a11d3",
+        storageBucket: "agendamento-a11d3.firebasestorage.app",
+        messagingSenderId: "31776903316",
+        appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const firestore = getFirestore(app);
+
+    const CORTE_ONIBUS = "11:30";
+    const COLECAO_CONFIG = 'configuracoes';
+    const DOC_CONFIG_ONIBUS = 'onibus';
+    let LIMITE_MANHA = 32;
+    let LIMITE_TARDE = 28;
+
+    let db = [];
+    let dataAtual = "";
+    let unsubscribeAtual = null;
+    let listaAberta = false;
+    let salvando = false;
+    let editandoId = null;
+    let editandoRegistro = null;
+
+    const el = {
+        data: document.getElementById('data'),
+        paciente: document.getElementById('paciente'),
+        telefone: document.getElementById('telefone'),
+        lugar: document.getElementById('lugar'),
+        horario: document.getElementById('horario'),
+        obs: document.getElementById('obs'),
+        acompanhante: document.getElementById('acompanhante'),
+        londrina: document.getElementById('londrina'),
+        btnSalvar: document.getElementById('btnSalvar'),
+        btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
+        btnAbrirConfig: document.getElementById('btnAbrirConfig'),
+        painelConfig: document.getElementById('painelConfig'),
+        configLimiteManha: document.getElementById('configLimiteManha'),
+        configLimiteTarde: document.getElementById('configLimiteTarde'),
+        btnSalvarConfig: document.getElementById('btnSalvarConfig'),
+        btnVerLista: document.getElementById('btnVerLista'),
+        btnGerarRelatorio: document.getElementById('btnGerarRelatorio'),
+        inputBusca: document.getElementById('inputBusca'),
+        inputBuscaGeral: document.getElementById('inputBuscaGeral'),
+        btnBuscaGeral: document.getElementById('btnBuscaGeral'),
+        resultadoBuscaGeral: document.getElementById('resultadoBuscaGeral'),
+        editandoBanner: document.getElementById('editandoBanner'),
+        statusMensagem: document.getElementById('statusMensagem'),
+        statusData: document.getElementById('statusData'),
+        vManha: document.getElementById('vManha'),
+        vTarde: document.getElementById('vTarde'),
+        listaConfirmacao: document.getElementById('listaConfirmacao'),
+        corpoLista: document.getElementById('corpoLista'),
+        relatorioArea: document.getElementById('relatorioArea')
+    };
+
+    function mostrarStatus(texto, tipo = 'ok', tempo = 4000) {
+        el.statusMensagem.textContent = texto;
+        el.statusMensagem.className = `status-box ${tipo === 'erro' ? 'status-erro' : tipo === 'info' ? 'status-info' : 'status-ok'}`;
+        el.statusMensagem.style.display = 'block';
+        if (tempo > 0) {
+            setTimeout(() => {
+                if (el.statusMensagem.textContent === texto) {
+                    el.statusMensagem.style.display = 'none';
+                }
+            }, tempo);
+        }
+    }
+
+    function limparCampos() {
+        el.paciente.value = '';
+        el.telefone.value = '';
+        el.lugar.value = '';
+        el.horario.value = '';
+        el.obs.value = '';
+        el.acompanhante.checked = false;
+        el.londrina.checked = false;
+    }
+
+    function atualizarModoEdicao() {
+        const emEdicao = !!editandoId;
+        el.btnSalvar.textContent = emEdicao ? 'SALVAR EDIÇÃO' : 'SALVAR AGENDAMENTO';
+        el.btnCancelarEdicao.style.display = emEdicao ? 'block' : 'none';
+
+        if (emEdicao && editandoRegistro) {
+            const dataBr = (editandoRegistro.data || '').split('-').reverse().join('/');
+            el.editandoBanner.textContent = `EDITANDO: ${editandoRegistro.paciente || ''} | Data atual: ${dataBr || 'sem data'}`;
+            el.editandoBanner.style.display = 'block';
+        } else {
+            el.editandoBanner.textContent = '';
+            el.editandoBanner.style.display = 'none';
+        }
+    }
+
+    function iniciarEdicao(id) {
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+        iniciarEdicaoPorRegistro(item);
+    }
+
+    function iniciarEdicaoPorRegistro(item) {
+        if (!item) return;
+        if ((item.id || '').startsWith('tmp_')) {
+            alert('Aguarde a sincronização terminar antes de editar.');
+            return;
+        }
+
+        editandoId = item.id;
+        editandoRegistro = { ...item };
+
+        el.data.value = item.data || '';
+        el.paciente.value = item.paciente || '';
+        el.telefone.value = item.telefone || '';
+        el.lugar.value = item.lugar || '';
+        el.horario.value = item.horario || '';
+        el.obs.value = item.obs || '';
+        el.acompanhante.checked = item.acompanhante === 'SIM';
+        el.londrina.checked = !!item.isLondrina;
+
+        atualizarModoEdicao();
+        mostrarStatus('Editando paciente: ' + (item.paciente || ''), 'info', 2500);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicao() {
+        editandoId = null;
+        editandoRegistro = null;
+        limparCampos();
+        atualizarModoEdicao();
+        mostrarStatus('Edição cancelada.', 'info', 2000);
+    }
+
+    function pesoRegistro(item) {
+        return item.acompanhante === 'SIM' ? 2 : 1;
+    }
+
+    function isTurnoManha(horario) {
+        return horario <= CORTE_ONIBUS;
+    }
+
+    async function buscarAtivosPorData(data) {
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('data', '==', data),
+            where('status', '==', 'ativo')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    async function buscarAtivosGerais() {
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('status', '==', 'ativo')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    function normalizarLugar(lugar) {
+        return (lugar || '').trim().toUpperCase();
+    }
+
+    function ordenar(lista) {
+        return [...lista].sort((a, b) => {
+            const turnoA = isTurnoManha(a.horario) ? 0 : 1;
+            const turnoB = isTurnoManha(b.horario) ? 0 : 1;
+            if (turnoA !== turnoB) return turnoA - turnoB;
+
+            const londrinaA = a.isLondrina ? 1 : 0;
+            const londrinaB = b.isLondrina ? 1 : 0;
+            if (londrinaA !== londrinaB) return londrinaA - londrinaB;
+
+            const lugarA = normalizarLugar(a.lugar);
+            const lugarB = normalizarLugar(b.lugar);
+            if (lugarA !== lugarB) return lugarA.localeCompare(lugarB);
+
+            if ((a.horario || '') !== (b.horario || '')) return (a.horario || '').localeCompare(b.horario || '');
+            return (a.paciente || '').localeCompare(b.paciente || '');
+        });
+    }
+
+    function renderizarPainel() {
+        if (!dataAtual) {
+            el.statusData.innerText = 'Selecione uma data';
+            el.vManha.innerText = `0 / ${LIMITE_MANHA}`;
+            el.vTarde.innerText = `0 / ${LIMITE_TARDE}`;
+            return;
+        }
+
+        el.statusData.innerText = 'DATA: ' + dataAtual.split('-').reverse().join('/');
+
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        const m = confirmados.filter(i => isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+        const t = confirmados.filter(i => !isTurnoManha(i.horario)).reduce((s, item) => s + pesoRegistro(item), 0);
+
+        el.vManha.innerText = `${m} / ${LIMITE_MANHA}`;
+        el.vTarde.innerText = `${t} / ${LIMITE_TARDE}`;
+    }
+
+    function renderizarLista() {
+        if (!listaAberta) return;
+
+        const busca = el.inputBusca.value.trim().toUpperCase();
+        const ativos = ordenar(db.filter(i => i.status === 'ativo'));
+        const filtrados = ativos.filter(i => !busca || (i.paciente || '').includes(busca));
+
+        el.corpoLista.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            el.corpoLista.innerHTML = '<div style="padding:10px;color:#64748b">Nenhum paciente encontrado.</div>';
+            return;
+        }
+
+        for (const i of filtrados) {
+            const div = document.createElement('div');
+            div.className = 'item-confirmar';
+            div.dataset.id = i.id;
+            div.dataset.nome = i.paciente || '';
+
+            const nome = document.createElement('div');
+            nome.className = 'nome-paciente';
+            nome.innerHTML = `${i.paciente || ''} ${i.isLondrina ? '<span class="tag tag-londrina">LONDRINA</span>' : ''} ${i.acompanhante === 'SIM' ? '<span class="tag tag-acomp">+ACOMP</span>' : ''}`;
+
+            const hora = document.createElement('div');
+            hora.className = 'hora-paciente';
+            hora.textContent = i.horario || '';
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.className = 'check-confirmar';
+            check.checked = !!i.confirmado;
+            check.addEventListener('change', () => confirmarVaga(i.id, check.checked));
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicao(i.id));
+
+            const btnApagar = document.createElement('button');
+            btnApagar.className = 'btn btn-del';
+            btnApagar.textContent = 'Apagar';
+            btnApagar.addEventListener('click', () => excluir(i.id));
+
+            div.appendChild(nome);
+            div.appendChild(hora);
+            div.appendChild(check);
+            div.appendChild(btnEditar);
+            div.appendChild(btnApagar);
+            el.corpoLista.appendChild(div);
+        }
+    }
+
+    function atualizarTela() {
+        atualizarModoEdicao();
+        renderizarPainel();
+        renderizarLista();
+    }
+
+    function aplicarConfiguracaoNaTela() {
+        el.configLimiteManha.value = LIMITE_MANHA;
+        el.configLimiteTarde.value = LIMITE_TARDE;
+        atualizarTela();
+    }
+
+    function iniciarEscutaConfiguracao() {
+        onSnapshot(
+            doc(firestore, COLECAO_CONFIG, DOC_CONFIG_ONIBUS),
+            snapshot => {
+                if (snapshot.exists()) {
+                    const config = snapshot.data();
+                    LIMITE_MANHA = Number(config.limiteManha) || 32;
+                    LIMITE_TARDE = Number(config.limiteTarde) || 28;
+                } else {
+                    LIMITE_MANHA = 32;
+                    LIMITE_TARDE = 28;
+                }
+                aplicarConfiguracaoNaTela();
+            },
+            erro => {
+                console.error(erro);
+                mostrarStatus('Erro ao carregar configurações: ' + erro.message, 'erro', 6000);
+            }
+        );
+    }
+
+    function alternarPainelConfiguracao() {
+        el.painelConfig.style.display = el.painelConfig.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function salvarConfiguracao() {
+        if (!window.podeConfigurarSistema?.()) { alert('Você não tem permissão para alterar configurações.'); return; }
+        const novoLimiteManha = Number(el.configLimiteManha.value);
+        const novoLimiteTarde = Number(el.configLimiteTarde.value);
+
+        if (!novoLimiteManha || novoLimiteManha < 1 || !novoLimiteTarde || novoLimiteTarde < 1) {
+            alert('Informe valores válidos para as vagas.');
+            return;
+        }
+
+        try {
+            await setDoc(doc(firestore, COLECAO_CONFIG, DOC_CONFIG_ONIBUS), {
+                limiteManha: novoLimiteManha,
+                limiteTarde: novoLimiteTarde,
+                atualizadoEm: Timestamp.now()
+            }, { merge: true });
+            el.painelConfig.style.display = 'none';
+            await window.registrarLog?.({ acao: 'alterou_configuracao', modulo: 'onibus', detalhes: `5h: ${novoLimiteManha} | 10h: ${novoLimiteTarde}` });
+            mostrarStatus('Configuração salva com sucesso.');
+        } catch (erro) {
+            console.error(erro);
+            alert('Erro ao salvar configuração: ' + erro.message);
+            mostrarStatus('Erro ao salvar configuração.', 'erro', 6000);
+        }
+    }
+
+    function iniciarEscutaData(data) {
+        dataAtual = data;
+        db = [];
+        atualizarTela();
+
+        if (!data) return;
+
+        if (unsubscribeAtual) {
+            unsubscribeAtual();
+            unsubscribeAtual = null;
+        }
+
+        mostrarStatus('Carregando dados da data selecionada...', 'info', 1500);
+
+        const q = query(
+            collection(firestore, 'agendamentos_onibus'),
+            where('data', '==', data)
+        );
+
+        unsubscribeAtual = onSnapshot(q, (snapshot) => {
+            db = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            atualizarTela();
+        }, (erro) => {
+            console.error(erro);
+            mostrarStatus('Erro ao carregar dados: ' + erro.message, 'erro', 6000);
+        });
+    }
+
+    async function salvar() {
+        if (salvando) return;
+
+        const data = el.data.value;
+        const paciente = el.paciente.value.trim().toUpperCase();
+        const temAcomp = el.acompanhante.checked;
+        const telefone = el.telefone.value.trim();
+        const lugar = el.lugar.value.trim().toUpperCase();
+        const horario = el.horario.value;
+        const obs = el.obs.value.trim();
+        const isLondrina = el.londrina.checked;
+
+        if (!data || !paciente || !horario) {
+            alert('Preencha Nome, Data e Horário!');
+            return;
+        }
+
+        let ativosDaData = [];
+        try {
+            ativosDaData = await buscarAtivosPorData(data);
+        } catch (erro) {
+            console.error(erro);
+            alert('Erro ao verificar dados da data: ' + erro.message);
+            return;
+        }
+
+        // Regra de duplicidade:
+        // A mesma pessoa pode estar cadastrada no mesmo dia somente se for em ônibus diferente.
+        // Exemplo permitido: uma vez no ônibus 5H e outra no ônibus 10H.
+        // Exemplo bloqueado: duas vezes no ônibus 5H ou duas vezes no ônibus 10H.
+        const repetidoMesmoOnibus = ativosDaData.find(i =>
+            i.paciente === paciente &&
+            i.id !== editandoId &&
+            isTurnoManha(i.horario) === isTurnoManha(horario)
+        );
+
+        if (repetidoMesmoOnibus) {
+            const nomeOnibus = isTurnoManha(horario) ? 'ÔNIBUS 5H' : 'ÔNIBUS 10H';
+            alert(`ESTE PACIENTE JÁ ESTÁ CADASTRADO NESTE MESMO ÔNIBUS (${nomeOnibus})!`);
+            return;
+        }
+
+        salvando = true;
+        el.btnSalvar.classList.add('loading');
+        el.btnSalvar.textContent = editandoId ? 'SALVANDO EDIÇÃO...' : 'SALVANDO...';
+
+        if (editandoId) {
+            const itemNaTela = db.find(i => i.id === editandoId);
+            const itemOriginal = itemNaTela || editandoRegistro;
+
+            if (!itemOriginal) {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+                alert('Registro não encontrado para editar.');
+                return;
+            }
+
+            const backup = { ...itemOriginal };
+            const editado = {
+                ...itemOriginal,
+                data,
+                paciente,
+                acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                telefone,
+                lugar,
+                horario,
+                obs,
+                isLondrina
+            };
+
+            if (editado.confirmado) {
+                const confirmadosMesmoTurno = ativosDaData
+                    .filter(i => i.status === 'ativo' && i.confirmado && i.id !== editandoId)
+                    .filter(i => isTurnoManha(i.horario) === isTurnoManha(horario))
+                    .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+
+                const limiteTurno = isTurnoManha(horario) ? LIMITE_MANHA : LIMITE_TARDE;
+                const totalSeEditar = confirmadosMesmoTurno + pesoRegistro(editado);
+
+                if (totalSeEditar > limiteTurno) {
+                    salvando = false;
+                    el.btnSalvar.classList.remove('loading');
+                    atualizarModoEdicao();
+                    alert(`Não dá para salvar esta edição porque o ônibus confirmado passaria do limite de ${limiteTurno}.`);
+                    return;
+                }
+            }
+
+            if (itemNaTela) {
+                Object.assign(itemNaTela, editado);
+                atualizarTela();
+            }
+
+            try {
+                await updateDoc(doc(firestore, 'agendamentos_onibus', editandoId), {
+                    data,
+                    paciente,
+                    acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                    telefone,
+                    lugar,
+                    horario,
+                    obs,
+                    isLondrina,
+                    editadoEm: Timestamp.now()
+                });
+
+                const novaData = data;
+                editandoId = null;
+                editandoRegistro = null;
+                limparCampos();
+                atualizarModoEdicao();
+                await window.registrarLog?.({ acao: 'editou_agendamento', modulo: 'onibus', paciente, dataRegistro: data, detalhes: 'Editou dados do paciente.' });
+                mostrarStatus('Paciente editado com sucesso.');
+
+                if (dataAtual !== novaData) {
+                    el.data.value = novaData;
+                    iniciarEscutaData(novaData);
+                }
+            } catch (erro) {
+                console.error(erro);
+                if (itemNaTela) {
+                    Object.assign(itemNaTela, backup);
+                    atualizarTela();
+                }
+                alert('Erro ao editar: ' + erro.message);
+                mostrarStatus('Erro ao editar: ' + erro.message, 'erro', 6000);
+            } finally {
+                salvando = false;
+                el.btnSalvar.classList.remove('loading');
+                atualizarModoEdicao();
+            }
+            return;
+        }
+
+        if (dataAtual !== data) {
+            iniciarEscutaData(data);
+        }
+
+        const temporario = {
+            id: 'tmp_' + Date.now(),
+            data,
+            paciente,
+            acompanhante: temAcomp ? 'SIM' : 'NÃO',
+            telefone,
+            lugar,
+            horario,
+            obs,
+            isLondrina,
+            confirmado: false,
+            status: 'ativo'
+        };
+
+        db.push(temporario);
+        atualizarTela();
+
+        try {
+            const docRef = await addDoc(collection(firestore, 'agendamentos_onibus'), {
+                data,
+                paciente,
+                acompanhante: temAcomp ? 'SIM' : 'NÃO',
+                telefone,
+                lugar,
+                horario,
+                obs,
+                isLondrina,
+                confirmado: false,
+                status: 'ativo',
+                criadoEm: Timestamp.now(),
+                excluidoEm: null,
+                motivoExclusao: null
+            });
+
+            const tempItem = db.find(i => i.id === temporario.id);
+            if (tempItem) tempItem.id = docRef.id;
+
+            limparCampos();
+            await window.registrarLog?.({ acao: 'cadastrou_agendamento', modulo: 'onibus', paciente, dataRegistro: data, detalhes: `Horário: ${horario} | Destino: ${lugar}` });
+            mostrarStatus('Agendamento salvo com sucesso.');
+        } catch (erro) {
+            console.error(erro);
+            db = db.filter(i => i.id !== temporario.id);
+            atualizarTela();
+            alert('Erro ao salvar: ' + erro.message);
+            mostrarStatus('Erro ao salvar: ' + erro.message, 'erro', 6000);
+        } finally {
+            salvando = false;
+            el.btnSalvar.classList.remove('loading');
+            atualizarModoEdicao();
+        }
+    }
+
+    function abrirListaConfirmacao() {
+        if (!el.data.value) {
+            alert('Escolha a data no calendário!');
+            return;
+        }
+        listaAberta = true;
+        el.listaConfirmacao.style.display = 'block';
+        renderizarLista();
+    }
+
+    function filtrarNomes() {
+        renderizarLista();
+    }
+
+    async function confirmarVaga(id, valor) {
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde alguns segundos para confirmar. O cadastro ainda está sincronizando.');
+            atualizarTela();
+            return;
+        }
+
+        const item = db.find(i => i.id === id);
+        if (!item) return;
+
+        if (!valor) {
+            const ok = confirm(`Tem certeza que quer DESCONFIRMAR ${item.paciente || 'este paciente'}?`);
+            if (!ok) { atualizarTela(); return; }
+        }
+
+        if (valor) {
+            const confirmadosMesmoTurno = db
+                .filter(i => i.status === 'ativo' && i.confirmado && i.id !== id)
+                .filter(i => isTurnoManha(i.horario) === isTurnoManha(item.horario))
+                .reduce((soma, registro) => soma + pesoRegistro(registro), 0);
+
+            const limiteTurno = isTurnoManha(item.horario) ? LIMITE_MANHA : LIMITE_TARDE;
+            const totalSeConfirmar = confirmadosMesmoTurno + pesoRegistro(item);
+
+            if (totalSeConfirmar > limiteTurno) {
+                alert(`Limite de confirmação atingido neste ônibus. Máximo: ${limiteTurno} lugares.`);
+                atualizarTela();
+                return;
+            }
+        }
+
+        item.confirmado = valor;
+        atualizarTela();
+
+        try {
+            await updateDoc(doc(firestore, 'agendamentos_onibus', id), { confirmado: valor });
+            await window.registrarLog?.({ acao: valor ? 'confirmou_agendamento' : 'desconfirmou_agendamento', modulo: 'onibus', paciente: item.paciente || '', dataRegistro: item.data || '', detalhes: `Horário: ${item.horario || ''}` });
+        } catch (erro) {
+            console.error(erro);
+            item.confirmado = !valor;
+            atualizarTela();
+            alert('Erro ao confirmar: ' + erro.message);
+            mostrarStatus('Erro ao confirmar paciente.', 'erro', 6000);
+        }
+    }
+
+    async function excluir(id) {
+        if ((id || '').startsWith('tmp_')) {
+            alert('Aguarde alguns segundos. O cadastro ainda está sincronizando.');
+            return;
+        }
+
+        const motivo = prompt('Motivo da exclusão:');
+        if (motivo === null) return;
+
+        const item = db.find(i => i.id === id);
+        const backup = item ? { ...item } : null;
+
+        if (item) {
+            item.status = 'excluido';
+            item.excluidoEm = new Date().toISOString();
+            item.motivoExclusao = motivo.trim() || 'Sem motivo informado';
+            atualizarTela();
+        }
+
+        try {
+            await updateDoc(doc(firestore, 'agendamentos_onibus', id), {
+                status: 'excluido',
+                excluidoEm: Timestamp.now(),
+                motivoExclusao: motivo.trim() || 'Sem motivo informado'
+            });
+            await window.registrarLog?.({ acao: 'excluiu_agendamento', modulo: 'onibus', paciente: backup?.paciente || '', dataRegistro: backup?.data || '', detalhes: motivo.trim() || 'Sem motivo informado' });
+            mostrarStatus('Paciente marcado como excluído.');
+        } catch (erro) {
+            console.error(erro);
+            if (backup) {
+                const idx = db.findIndex(i => i.id === id);
+                if (idx >= 0) db[idx] = backup;
+                atualizarTela();
+            }
+            alert('Erro ao excluir: ' + erro.message);
+            mostrarStatus('Erro ao excluir paciente.', 'erro', 6000);
+        }
+    }
+
+    function formatarDataBr(data) {
+        return data ? data.split('-').reverse().join('/') : '';
+    }
+
+    async function buscarGeralPorNome() {
+        const termo = el.inputBuscaGeral.value.trim().toUpperCase();
+        if (termo.length < 2) {
+            alert('Digite pelo menos 2 letras do nome.');
+            return;
+        }
+
+        el.resultadoBuscaGeral.innerHTML = 'Buscando...';
+
+        try {
+            const todos = await buscarAtivosGerais();
+            const encontrados = todos
+                .filter(i => (i.paciente || '').toUpperCase().includes(termo))
+                .sort((a, b) => {
+                    if ((a.data || '') !== (b.data || '')) return (a.data || '').localeCompare(b.data || '');
+                    return ordenar([a, b])[0].id === a.id ? -1 : 1;
+                });
+
+            renderizarBuscaGeral(encontrados);
+        } catch (erro) {
+            console.error(erro);
+            el.resultadoBuscaGeral.innerHTML = '<span style="color:#991b1b">Erro na busca: ' + erro.message + '</span>';
+        }
+    }
+
+    function renderizarBuscaGeral(lista) {
+        el.resultadoBuscaGeral.innerHTML = '';
+
+        if (lista.length === 0) {
+            el.resultadoBuscaGeral.innerHTML = 'Nenhum agendamento ativo encontrado com esse nome.';
+            return;
+        }
+
+        for (const item of lista) {
+            const div = document.createElement('div');
+            div.className = 'resultado-geral';
+
+            const info = document.createElement('div');
+            info.className = 'resultado-info';
+
+            const turno = isTurnoManha(item.horario) ? 'Ônibus 5H' : 'Ônibus 10H';
+            info.innerHTML = `
+                <div class="resultado-nome">${item.paciente || ''}</div>
+                <div class="resultado-meta">
+                    Data: <b>${formatarDataBr(item.data)}</b> | Horário: <b>${item.horario || ''}</b> | ${turno} | Destino: <b>${item.isLondrina ? '[LONDRINA] ' : ''}${item.lugar || ''}</b>
+                    ${item.acompanhante === 'SIM' ? ' | + Acompanhante' : ''}
+                    ${item.confirmado ? ' | CONFIRMADO' : ' | NÃO CONFIRMADO'}
+                </div>
+            `;
+
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn btn-edit';
+            btnEditar.textContent = 'Editar';
+            btnEditar.addEventListener('click', () => iniciarEdicaoPorRegistro(item));
+
+            const btnAbrirData = document.createElement('button');
+            btnAbrirData.className = 'btn btn-view';
+            btnAbrirData.style.width = 'auto';
+            btnAbrirData.style.marginTop = '0';
+            btnAbrirData.textContent = 'Abrir data';
+            btnAbrirData.addEventListener('click', () => {
+                el.data.value = item.data || '';
+                iniciarEscutaData(item.data || '');
+                listaAberta = true;
+                el.listaConfirmacao.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            div.appendChild(info);
+            div.appendChild(btnAbrirData);
+            div.appendChild(btnEditar);
+            el.resultadoBuscaGeral.appendChild(div);
+        }
+    }
+
+    function tabela(lista) {
+        let txt = `<table><thead><tr><th>Hora</th><th>Paciente</th><th>Acomp.</th><th>Telefone</th><th>Destino</th><th>Observações</th></tr></thead><tbody>`;
+        for (const i of lista) {
+            txt += `<tr>
+                <td><b>${i.horario || ''}</b></td>
+                <td>${i.paciente || ''}</td>
+                <td style="text-align:center">${i.acompanhante || ''}</td>
+                <td>${i.telefone || ''}</td>
+                <td>${i.isLondrina ? '[LONDRINA] ' : ''}${i.lugar || ''}</td>
+                <td>${i.obs || ''}</td>
+            </tr>`;
+        }
+        return txt + `</tbody></table>`;
+    }
+
+    function gerarRelatorio() {
+        if (!dataAtual) {
+            alert('Escolha a data no calendário!');
+            return;
+        }
+
+        const confirmados = db.filter(i => i.status === 'ativo' && i.confirmado);
+        if (confirmados.length === 0) {
+            alert('Nenhum paciente marcado com OK!');
+            return;
+        }
+
+        const m = ordenar(confirmados.filter(i => isTurnoManha(i.horario)));
+        const t = ordenar(confirmados.filter(i => !isTurnoManha(i.horario)));
+        const dataBr = dataAtual.split('-').reverse().join('/');
+        let h = '';
+
+        if (m.length > 0) {
+            const contaM = m.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 5H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaM}/${LIMITE_MANHA}</h2>
+                    </div>
+                    ${tabela(m)}
+                  </div>`;
+        }
+        if (t.length > 0) {
+            const contaT = t.reduce((soma, item) => soma + pesoRegistro(item), 0);
+            h += `<div class="onibus-section">
+                    <div class="header-print">
+                        <h2 style="margin:0">DATA: ${dataBr} - ÔNIBUS 10H</h2>
+                        <h2 style="margin:0">OCUPAÇÃO: ${contaT}/${LIMITE_TARDE}</h2>
+                    </div>
+                    ${tabela(t)}
+                  </div>`;
+        }
+
+        el.relatorioArea.innerHTML = h;
+        setTimeout(() => window.print(), 300);
+    }
+
+    el.data.addEventListener('change', () => iniciarEscutaData(el.data.value));
+    el.btnSalvar.addEventListener('click', salvar);
+    el.btnCancelarEdicao.addEventListener('click', cancelarEdicao);
+    el.btnAbrirConfig.addEventListener('click', alternarPainelConfiguracao);
+    el.btnSalvarConfig.addEventListener('click', salvarConfiguracao);
+    el.btnVerLista.addEventListener('click', abrirListaConfirmacao);
+    el.inputBusca.addEventListener('input', filtrarNomes);
+    el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
+    el.btnBuscaGeral.addEventListener('click', buscarGeralPorNome);
+    el.inputBuscaGeral.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Enter') buscarGeralPorNome();
+    });
+
+    iniciarEscutaConfiguracao();
+    atualizarModoEdicao();
+    renderizarPainel();
+</script>
+
+<script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+    apiKey: "AIzaSyBEewfcj1MzE-OEoSv2YERkyU8TAXQZWFY",
+    authDomain: "agendamento-a11d3.firebaseapp.com",
+    projectId: "agendamento-a11d3",
+    storageBucket: "agendamento-a11d3.firebasestorage.app",
+    messagingSenderId: "31776903316",
+    appId: "1:31776903316:web:73b72839fe54ce0d04a481"
+};
+
+    const appSeguranca = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const authSeguranca = getAuth(appSeguranca);
+    const dbSeguranca = getFirestore(appSeguranca);
+
+    function paginaAtual() {
+        return window.location.pathname.split('/').pop() || 'index.html';
+    }
+
+    function criarBotaoSair(perfil) {
+        if (document.getElementById('btnSairSistema')) return;
+
+        const caixa = document.createElement('div');
+        caixa.id = 'caixaUsuarioSistema';
+        caixa.style.position = 'fixed';
+        caixa.style.top = '12px';
+        caixa.style.right = '12px';
+        caixa.style.zIndex = '9999';
+        caixa.style.display = 'flex';
+        caixa.style.gap = '8px';
+        caixa.style.alignItems = 'center';
+
+        const badge = document.createElement('span');
+        badge.textContent = (window.usuarioAtual?.nome || window.usuarioAtual?.usuario || 'Usuário') + ' • ' + perfil.toUpperCase();
+        badge.style.background = '#0f172a';
+        badge.style.color = 'white';
+        badge.style.borderRadius = '8px';
+        badge.style.padding = '8px 10px';
+        badge.style.fontSize = '12px';
+        badge.style.fontWeight = '700';
+
+        const btn = document.createElement('button');
+        btn.id = 'btnSairSistema';
+        btn.textContent = 'Sair';
+        btn.type = 'button';
+        btn.style.background = '#dc2626';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '8px 12px';
+        btn.style.fontWeight = '700';
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', async () => {
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+        });
+
+        caixa.appendChild(badge);
+        caixa.appendChild(btn);
+        document.body.appendChild(caixa);
+    }
+
+    function aplicarPermissoesVisuais(perfil) {
+        const podeConfigurar = perfil === 'master' || perfil === 'admin';
+        const btnConfig = document.getElementById('btnAbrirConfig');
+        const painelConfig = document.getElementById('painelConfig');
+        if (!podeConfigurar) {
+            if (btnConfig) btnConfig.style.display = 'none';
+            if (painelConfig) painelConfig.style.display = 'none';
+        }
+
+        const linksUsuarios = document.querySelectorAll('[data-master-only="true"]');
+        linksUsuarios.forEach(el => el.style.display = perfil === 'master' ? '' : 'none');
+    }
+
+    window.usuarioAtual = null;
+    window.perfilUsuario = null;
+    window.podeConfigurarSistema = () => window.perfilUsuario === 'master' || window.perfilUsuario === 'admin';
+    window.podeGerenciarUsuarios = () => window.perfilUsuario === 'master';
+
+    window.registrarLog = async function(info) {
+        try {
+            if (!window.usuarioAtual) return;
+            await addDoc(collection(dbSeguranca, 'logs'), {
+                uid: window.usuarioAtual.uid,
+                usuario: window.usuarioAtual.usuario || '',
+                nomeUsuario: window.usuarioAtual.nome || '',
+                email: window.usuarioAtual.email || '',
+                perfil: window.usuarioAtual.perfil || '',
+                acao: info.acao || 'acao',
+                modulo: info.modulo || paginaAtual(),
+                paciente: info.paciente || '',
+                dataRegistro: info.dataRegistro || '',
+                detalhes: info.detalhes || '',
+                criadoEm: Timestamp.now()
+            });
+        } catch (erro) {
+            console.error('Erro ao registrar log:', erro);
+        }
+    };
+
+    onAuthStateChanged(authSeguranca, async (user) => {
+        if (!user) {
+            window.location.href = 'login.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        const snap = await getDoc(doc(dbSeguranca, 'usuarios', user.uid));
+        if (!snap.exists() || snap.data().ativo === false) {
+            alert('Seu usuário não está cadastrado ou está desativado. Fale com o administrador master.');
+            await signOut(authSeguranca);
+            window.location.href = 'login.html';
+            return;
+        }
+
+        if (snap.data().precisaTrocarSenha === true) {
+            window.location.href = 'trocar_senha.html?next=' + encodeURIComponent(paginaAtual());
+            return;
+        }
+
+        window.usuarioAtual = { uid: user.uid, email: user.email, ...snap.data() };
+        window.perfilUsuario = window.usuarioAtual.perfil;
+        criarBotaoSair(window.perfilUsuario);
+        aplicarPermissoesVisuais(window.perfilUsuario);
+
+        if (paginaAtual() === 'usuarios.html' && window.perfilUsuario !== 'master') {
+            alert('Apenas o administrador master pode gerenciar usuários.');
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+
+</body>
+</html>
