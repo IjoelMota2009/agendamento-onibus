@@ -115,10 +115,12 @@
             display: flex;
             gap: 10px;
             grid-column: span 2;
+            flex-wrap: wrap;
         }
 
         .check-box {
             flex: 1;
+            min-width: 190px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -195,7 +197,7 @@
             color: #1d4ed8;
             padding: 5px 8px;
             border: 1px solid #bfdbfe;
-            font-size: 11px;
+            font-size: 13px;
             margin-left: 5px;
         }
 
@@ -204,7 +206,7 @@
             color: #92400e;
             padding: 5px 8px;
             border: 1px solid #fde68a;
-            font-size: 11px;
+            font-size: 13px;
             margin-left: 5px;
         }
 
@@ -213,7 +215,7 @@
             color: #dc2626;
             padding: 5px 8px;
             border: 1px solid #fecaca;
-            font-size: 11px;
+            font-size: 13px;
             margin-left: 5px;
         }
 
@@ -314,14 +316,19 @@
             border: 1px solid #b45309;
         }
 
-        .tag-crianca {
-            color: #db2777;
-            border: 1px solid #db2777;
+        .tag-extra-vaga {
+            color: #be123c;
+            border: 1px solid #be123c;
         }
 
         .tag-fixo {
             color: #2563eb;
             border: 1px solid #2563eb;
+        }
+
+        .tag-solo {
+            color: #111827;
+            border: 1px solid #111827;
         }
 
         .status-box {
@@ -373,13 +380,14 @@
         }
 
         @media print {
-            .no-print {
+            .no-print, #caixaUsuarioSistema {
                 display: none !important;
             }
 
             body {
                 padding: 0;
                 background: white;
+                font-size: 13px;
             }
 
             .onibus-section {
@@ -400,9 +408,9 @@
             th,
             td {
                 border: 1px solid #000;
-                padding: 6px;
+                padding: 7px;
                 text-align: left;
-                font-size: 11px;
+                font-size: 13px;
             }
 
             th {
@@ -418,17 +426,7 @@
                 padding-bottom: 5px;
             }
         }
-    
-/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
-@media print {
-    #caixaUsuarioSistema,
-    #btnSairSistema,
-    .no-print {
-        display: none !important;
-    }
-}
-
-</style>
+    </style>
 </head>
 
 <body>
@@ -492,13 +490,18 @@
                         </div>
 
                         <div class="check-box">
-                            <input type="checkbox" id="crianca">
-                            <label for="crianca">Criança / bebê conforto</label>
+                            <input type="checkbox" id="extraVaga">
+                            <label for="extraVaga">Criança / bebê conforto / acompanhante extra</label>
                         </div>
 
                         <div class="check-box">
-                            <input type="checkbox" id="fixo">
-                            <label for="fixo">Paciente fixo</label>
+                            <input type="checkbox" id="pacienteFixo">
+                            <label for="pacienteFixo">Paciente fixo</label>
+                        </div>
+
+                        <div class="check-box">
+                            <input type="checkbox" id="carroSozinho">
+                            <label for="carroSozinho">Carro sozinho</label>
                         </div>
                     </div>
                 </div>
@@ -617,8 +620,9 @@
             obs: document.getElementById('obs'),
             acompanhante: document.getElementById('acompanhante'),
             carroBaixo: document.getElementById('carroBaixo'),
-            crianca: document.getElementById('crianca'),
-            fixo: document.getElementById('fixo'),
+            extraVaga: document.getElementById('extraVaga'),
+            pacienteFixo: document.getElementById('pacienteFixo'),
+            carroSozinho: document.getElementById('carroSozinho'),
             btnSalvar: document.getElementById('btnSalvar'),
             btnCancelarEdicao: document.getElementById('btnCancelarEdicao'),
             btnVerLista: document.getElementById('btnVerLista'),
@@ -658,7 +662,24 @@
         }
 
         function normalizar(texto) {
-            return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
+            return (texto || '')
+                .normalize('NFD')
+                .replace(/[̀-ͯ]/g, '')
+                .replace(/ç/g, 'c')
+                .replace(/Ç/g, 'C')
+                .toUpperCase()
+                .trim();
+        }
+
+        function aplicarPadraoInput(id) {
+            const campo = document.getElementById(id);
+            if (!campo) return;
+            campo.addEventListener('input', () => {
+                const inicio = campo.selectionStart;
+                const fim = campo.selectionEnd;
+                campo.value = normalizar(campo.value);
+                try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+            });
         }
 
         function limparCampos() {
@@ -670,8 +691,9 @@
             el.obs.value = '';
             el.acompanhante.checked = false;
             el.carroBaixo.checked = false;
-            el.crianca.checked = false;
-            el.fixo.checked = false;
+            el.extraVaga.checked = false;
+            el.pacienteFixo.checked = false;
+            el.carroSozinho.checked = false;
         }
 
         function contarConfirmados(lista = db) {
@@ -703,7 +725,7 @@
         function pesoVagas(item) {
             let vagas = 1;
             if (item.acompanhante === 'SIM') vagas += 1;
-            if (item.crianca === 'SIM') vagas += 1;
+            if (item.extraVaga === 'SIM' || item.crianca === 'SIM') vagas += 1;
             return vagas;
         }
 
@@ -735,6 +757,7 @@
         }
 
         function tentarAdicionarNoCarro(carro, item) {
+            if (carro.exclusivo) return false;
             const total = vagasUsadas(carro.pacientes) + pesoVagas(item);
             if (total > capacidadePorCarro) return false;
             if (!dentroDaJanelaDeDuasHoras(carro.pacientes, item)) return false;
@@ -744,16 +767,30 @@
 
         function montarCarros(lista) {
             const confirmados = ordenar(lista.filter(item => item.status === 'ativo' && item.confirmado));
-            const porDestino = new Map();
+            const carros = [];
+            let numeroCarro = 1;
+
+            const normais = [];
 
             for (const item of confirmados) {
+                if (item.carroSozinho === 'SIM') {
+                    carros.push({
+                        numero: numeroCarro++,
+                        exclusivo: true,
+                        tipoPreferencial: 'CARRO SOZINHO' + (item.carroBaixo === 'SIM' ? ' / CARRO BAIXO' : ''),
+                        pacientes: [item]
+                    });
+                } else {
+                    normais.push(item);
+                }
+            }
+
+            const porDestino = new Map();
+            for (const item of normais) {
                 const destino = normalizar(item.lugar) || 'SEM DESTINO';
                 if (!porDestino.has(destino)) porDestino.set(destino, []);
                 porDestino.get(destino).push(item);
             }
-
-            const carros = [];
-            let numeroCarro = 1;
 
             for (const [, pacientesDestino] of porDestino) {
                 const pacientesOrdenados = [...pacientesDestino].sort((a, b) => {
@@ -767,6 +804,7 @@
                     let colocado = false;
 
                     for (const carro of carros) {
+                        if (carro.exclusivo) continue;
                         const mesmoDestino = carro.pacientes.some(p => normalizar(p.lugar) === normalizar(paciente.lugar));
                         if (!mesmoDestino) continue;
                         if (paciente.carroBaixo === 'SIM' && carro.tipoPreferencial !== 'CARRO BAIXO') continue;
@@ -781,6 +819,7 @@
                     if (!colocado) {
                         const novoCarro = {
                             numero: numeroCarro++,
+                            exclusivo: false,
                             tipoPreferencial: paciente.carroBaixo === 'SIM' ? 'CARRO BAIXO' : '',
                             pacientes: []
                         };
@@ -793,9 +832,15 @@
             const compactados = [];
 
             for (const carro of carros) {
+                if (carro.exclusivo) {
+                    compactados.push(carro);
+                    continue;
+                }
+
                 let unido = false;
 
                 for (const destino of compactados) {
+                    if (destino.exclusivo) continue;
                     const sobra = capacidadePorCarro - vagasUsadas(destino.pacientes);
                     const pesoCarro = vagasUsadas(carro.pacientes);
 
@@ -874,11 +919,14 @@
                     ${item.carroBaixo === 'SIM'
                         ? '<span class="tag tag-carro-baixo">CARRO BAIXO</span>'
                         : ''}
-                    ${item.crianca === 'SIM'
-                        ? '<span class="tag tag-crianca">CRIANÇA</span>'
+                    ${item.extraVaga === 'SIM' || item.crianca === 'SIM'
+                        ? '<span class="tag tag-extra-vaga">+1 VAGA</span>'
                         : ''}
-                    ${item.fixo === 'SIM'
+                    ${item.pacienteFixo === 'SIM' || item.fixo === true
                         ? '<span class="tag tag-fixo">FIXO</span>'
+                        : ''}
+                    ${item.carroSozinho === 'SIM'
+                        ? '<span class="tag tag-solo">CARRO SOZINHO</span>'
                         : ''}
                     <br>
                     <small style="font-weight:400;color:#64748b">
@@ -1041,8 +1089,9 @@
                 obs: normalizar(el.obs.value),
                 acompanhante: el.acompanhante.checked ? 'SIM' : 'NÃO',
                 carroBaixo: el.carroBaixo.checked ? 'SIM' : 'NÃO',
-                crianca: el.crianca.checked ? 'SIM' : 'NÃO',
-                fixo: el.fixo.checked ? 'SIM' : 'NÃO'
+                extraVaga: el.extraVaga.checked ? 'SIM' : 'NÃO',
+                pacienteFixo: el.pacienteFixo.checked ? 'SIM' : 'NÃO',
+                carroSozinho: el.carroSozinho.checked ? 'SIM' : 'NÃO'
             };
         }
 
@@ -1088,9 +1137,9 @@
                 }
 
                 let confirmado = true;
-                const vagasSeConfirmar = contarConfirmados() + pesoVagas(dados);
+                const confirmados = contarConfirmados();
 
-                if (vagasSeConfirmar > limiteCarro) {
+                if (confirmados + pesoVagas(dados) > limiteCarro) {
                     const continuar = confirm('As vagas confirmadas já estão preenchidas. Salvar como DESMARCADO?');
                     if (!continuar) return;
                     confirmado = false;
@@ -1137,8 +1186,9 @@
             el.obs.value = item.obs || '';
             el.acompanhante.checked = item.acompanhante === 'SIM';
             el.carroBaixo.checked = item.carroBaixo === 'SIM';
-            el.crianca.checked = item.crianca === 'SIM';
-            el.fixo.checked = item.fixo === 'SIM';
+            el.extraVaga.checked = item.extraVaga === 'SIM' || item.crianca === 'SIM';
+            el.pacienteFixo.checked = item.pacienteFixo === 'SIM' || item.fixo === true;
+            el.carroSozinho.checked = item.carroSozinho === 'SIM';
 
             el.btnSalvar.textContent = 'SALVAR EDIÇÃO';
             el.btnCancelarEdicao.style.display = 'block';
@@ -1171,7 +1221,7 @@
                 if (!ok) return;
             }
 
-            if (novoValor && (contarConfirmados() + pesoVagas(item)) > limiteCarro) {
+            if (novoValor && contarConfirmados() + pesoVagas(item) > limiteCarro) {
                 alert('Limite de ' + limiteCarro + ' vagas confirmadas atingido.');
                 return;
             }
@@ -1255,9 +1305,10 @@
                             <th>Destino</th>
                             <th>Telefone</th>
                             <th>Vagas</th>
-                            <th>Carro baixo</th>
-                            <th>Criança</th>
+                            <th>Extra</th>
                             <th>Fixo</th>
+                            <th>Carro baixo</th>
+                            <th>Carro sozinho</th>
                             <th>Obs.</th>
                         </tr>
                     </thead>
@@ -1272,10 +1323,11 @@
                         <td>${item.localBusca || ''}</td>
                         <td>${item.lugar || ''}</td>
                         <td>${item.telefone || ''}</td>
-                        <td style="text-align:center">${pesoVagas(item)}${item.acompanhante === 'SIM' ? ' (ACOMP.)' : ''}${item.crianca === 'SIM' ? ' + CRIANÇA' : ''}</td>
+                        <td style="text-align:center">${pesoVagas(item)}${item.acompanhante === 'SIM' ? ' (ACOMP.)' : ''}</td>
+                        <td style="text-align:center">${item.extraVaga === 'SIM' || item.crianca === 'SIM' ? 'SIM' : 'NÃO'}</td>
+                        <td style="text-align:center">${item.pacienteFixo === 'SIM' || item.fixo === true ? 'SIM' : 'NÃO'}</td>
                         <td style="text-align:center">${item.carroBaixo === 'SIM' ? 'SIM' : 'NÃO'}</td>
-                        <td style="text-align:center">${item.crianca === 'SIM' ? 'SIM' : 'NÃO'}</td>
-                        <td style="text-align:center">${item.fixo === 'SIM' ? 'SIM' : 'NÃO'}</td>
+                        <td style="text-align:center">${item.carroSozinho === 'SIM' ? 'SIM' : 'NÃO'}</td>
                         <td>${item.obs || ''}</td>
                     </tr>
                 `;
@@ -1299,7 +1351,7 @@
                     <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px">
                         <div>
                             <h3 style="margin:0">CARRO ${carro.numero}</h3>
-                            <div style="font-size:12px;margin-top:3px">
+                            <div style="font-size:14px;margin-top:3px">
                                 <b>Motorista:</b> ____________________
                                 &nbsp;&nbsp;
                                 <b>Carro:</b> ____________________
@@ -1307,12 +1359,18 @@
                                 <b>Tipo:</b> ${tipo}
                             </div>
                         </div>
-                        <div style="text-align:right;font-size:12px">
+                        <div style="text-align:right;font-size:14px">
                             <b>Vagas:</b> ${vagas}/${capacidadePorCarro}<br>
                             <b>Destino(s):</b> ${destinos || 'A DEFINIR'}
                         </div>
                     </div>
                     ${tabela(carro.pacientes)}
+                    <div style="margin-top:10px; page-break-inside:avoid;">
+                        <div style="font-size:14px;font-weight:bold;margin-bottom:4px;">Observações para o motorista:</div>
+                        <div style="height:22px;border-bottom:1px solid #000;"></div>
+                        <div style="height:22px;border-bottom:1px solid #000;"></div>
+                        <div style="height:22px;border-bottom:1px solid #000;"></div>
+                    </div>
                 </div>
             `;
         }
@@ -1326,10 +1384,10 @@
                         <div>
                             <h2 style="margin:0">${via} - DATA: ${dataBr} - CARROS</h2>
                             <div style="font-size:13px;margin-top:4px">
-                                Separado automaticamente por destino, janela máxima de 2 horas, capacidade configurada por carro e necessidade de carro baixo.
+                                Separado automaticamente por destino, janela máxima de 2 horas, capacidade configurada, carro baixo e carro sozinho quando marcado.
                             </div>
                         </div>
-                        <h2 style="margin:0">CONFIRMADOS: ${confirmados}/${limiteCarro}</h2>
+                        <h2 style="margin:0">VAGAS: ${confirmados}/${limiteCarro}</h2>
                     </div>
                     ${blocos}
                 </div>
@@ -1350,12 +1408,12 @@
             }
 
             const carros = montarCarros(confirmadosLista);
-            const vagasConfirmadas = vagasUsadas(confirmadosLista);
+            const confirmados = vagasUsadas(confirmadosLista);
             const dataBr = dataAtual.split('-').reverse().join('/');
 
             el.relatorioArea.innerHTML =
-                viaRelatorio(carros, '1ª VIA', dataBr, vagasConfirmadas) +
-                viaRelatorio(carros, '2ª VIA', dataBr, vagasConfirmadas);
+                viaRelatorio(carros, '1ª VIA', dataBr, confirmados) +
+                viaRelatorio(carros, '2ª VIA', dataBr, confirmados);
 
             setTimeout(() => window.print(), 300);
         }
@@ -1371,6 +1429,12 @@
         el.btnGerarRelatorio.addEventListener('click', gerarRelatorio);
         el.btnAbrirConfig.addEventListener('click', alternarPainelConfiguracao);
         el.btnSalvarConfig.addEventListener('click', salvarConfiguracao);
+
+        aplicarPadraoInput('paciente');
+        aplicarPadraoInput('localBusca');
+        aplicarPadraoInput('lugar');
+        aplicarPadraoInput('obs');
+        aplicarPadraoInput('inputBusca');
 
         iniciarEscutaConfiguracao();
         renderizarPainel();
@@ -1403,6 +1467,7 @@
 
         const caixa = document.createElement('div');
         caixa.id = 'caixaUsuarioSistema';
+        caixa.className = 'no-print';
         caixa.style.position = 'fixed';
         caixa.style.top = '12px';
         caixa.style.right = '12px';
@@ -1509,45 +1574,6 @@
             window.location.href = 'index.html';
         }
     });
-</script>
-
-
-<script>
-// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
-(function () {
-    function padronizarTexto(valor) {
-        return (valor || '')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[çÇ]/g, 'C')
-            .toUpperCase();
-    }
-
-    function deveIgnorarCampo(campo) {
-        const tipo = (campo.type || '').toLowerCase();
-        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
-    }
-
-    function aplicarPadrao(campo) {
-        if (!campo || deveIgnorarCampo(campo)) return;
-        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
-        const inicio = campo.selectionStart;
-        const fim = campo.selectionEnd;
-        const novoValor = padronizarTexto(campo.value);
-        if (campo.value !== novoValor) {
-            campo.value = novoValor;
-            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
-        }
-    }
-
-    document.addEventListener('input', function (evento) {
-        aplicarPadrao(evento.target);
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
-    });
-})();
 </script>
 
 </body>

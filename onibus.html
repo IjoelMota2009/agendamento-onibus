@@ -55,12 +55,12 @@
         .btn-save { background: var(--success); width: 100%; margin-top: 10px; }
         .btn-view { background: #4b5563; width: 100%; margin-top: 10px; }
         .btn-print { background: var(--primary); width: 100%; height: 50px; font-size: 16px; margin-top: 20px; }
-        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 11px; margin-left: 5px; }
+        .btn-edit { background: #fef3c7; color: #92400e; padding: 5px 8px; border: 1px solid #fcd34d; font-size: 13px; margin-left: 5px; }
         .btn-cancel { background: #6b7280; width: 100%; margin-top: 8px; }
 .config-panel { display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin: 10px 0 15px; }
         .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn-config-save { background: #16a34a; width: 100%; margin-top: 10px; }
-        .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 11px; margin-left: 5px; }
+        .btn-del { background: #fee2e2; color: #dc2626; padding: 5px 8px; border: 1px solid #fecaca; font-size: 13px; margin-left: 5px; }
         .vagas-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .vagas-box { padding: 15px; border-radius: 8px; text-align: center; color: white; }
         .manha { background: #0284c7; }
@@ -93,27 +93,17 @@
             .resultado-geral { align-items: flex-start; flex-direction: column; }
         }
         @media print {
-            .no-print { display: none !important; }
-            body { padding: 0; background: white; }
+            .no-print, #caixaUsuarioSistema { display: none !important; }
+            body { padding: 0; background: white; font-size: 13px; }
             .onibus-section { page-break-before: always; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
             .onibus-section:first-child { page-break-before: auto; }
             .onibus-section:last-child { border-bottom: none; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 11px; }
+            th, td { border: 1px solid #000; padding: 7px; text-align: left; font-size: 13px; }
             th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
             .header-print { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 5px; }
         }
-    
-/* Ajuste geral de impressão: oculta usuário logado, botão sair e controles */
-@media print {
-    #caixaUsuarioSistema,
-    #btnSairSistema,
-    .no-print {
-        display: none !important;
-    }
-}
-
-</style>
+    </style>
 </head>
 <body>
 <div class="container">
@@ -400,8 +390,29 @@
         return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
+    function normalizarTexto(valor) {
+        return (valor || '')
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/ç/g, 'c')
+            .replace(/Ç/g, 'C')
+            .toUpperCase()
+            .trim();
+    }
+
+    function aplicarPadraoInput(id) {
+        const campo = document.getElementById(id);
+        if (!campo) return;
+        campo.addEventListener('input', () => {
+            const inicio = campo.selectionStart;
+            const fim = campo.selectionEnd;
+            campo.value = normalizarTexto(campo.value);
+            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
+        });
+    }
+
     function normalizarLugar(lugar) {
-        return (lugar || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[çÇ]/g, 'C').trim().toUpperCase();
+        return normalizarTexto(lugar);
     }
 
     function ordenar(lista) {
@@ -589,12 +600,12 @@
         if (salvando) return;
 
         const data = el.data.value;
-        const paciente = normalizarLugar(el.paciente.value);
+        const paciente = normalizarTexto(el.paciente.value);
         const temAcomp = el.acompanhante.checked;
         const telefone = el.telefone.value.trim();
-        const lugar = normalizarLugar(el.lugar.value);
+        const lugar = normalizarTexto(el.lugar.value);
         const horario = el.horario.value;
-        const obs = normalizarLugar(el.obs.value);
+        const obs = normalizarTexto(el.obs.value);
         const isLondrina = el.londrina.checked;
 
         if (!data || !paciente || !horario) {
@@ -1026,6 +1037,12 @@
     });
 
     iniciarEscutaConfiguracao();
+    aplicarPadraoInput('paciente');
+    aplicarPadraoInput('lugar');
+    aplicarPadraoInput('obs');
+    aplicarPadraoInput('inputBusca');
+    aplicarPadraoInput('inputBuscaGeral');
+
     atualizarModoEdicao();
     renderizarPainel();
 </script>
@@ -1057,6 +1074,7 @@
 
         const caixa = document.createElement('div');
         caixa.id = 'caixaUsuarioSistema';
+        caixa.className = 'no-print';
         caixa.style.position = 'fixed';
         caixa.style.top = '12px';
         caixa.style.right = '12px';
@@ -1163,45 +1181,6 @@
             window.location.href = 'index.html';
         }
     });
-</script>
-
-
-<script>
-// Padronização geral: letras maiúsculas, sem acentos e sem Ç nos campos de texto.
-(function () {
-    function padronizarTexto(valor) {
-        return (valor || '')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[çÇ]/g, 'C')
-            .toUpperCase();
-    }
-
-    function deveIgnorarCampo(campo) {
-        const tipo = (campo.type || '').toLowerCase();
-        return ['password', 'date', 'time', 'number', 'email', 'checkbox', 'radio', 'button', 'submit'].includes(tipo);
-    }
-
-    function aplicarPadrao(campo) {
-        if (!campo || deveIgnorarCampo(campo)) return;
-        if (!['INPUT', 'TEXTAREA'].includes(campo.tagName)) return;
-        const inicio = campo.selectionStart;
-        const fim = campo.selectionEnd;
-        const novoValor = padronizarTexto(campo.value);
-        if (campo.value !== novoValor) {
-            campo.value = novoValor;
-            try { campo.setSelectionRange(inicio, fim); } catch (e) {}
-        }
-    }
-
-    document.addEventListener('input', function (evento) {
-        aplicarPadrao(evento.target);
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('input, textarea').forEach(aplicarPadrao);
-    });
-})();
 </script>
 
 </body>
