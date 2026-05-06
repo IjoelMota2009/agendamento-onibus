@@ -406,7 +406,12 @@
         campo.addEventListener('input', () => {
             const inicio = campo.selectionStart;
             const fim = campo.selectionEnd;
-            campo.value = normalizarTexto(campo.value);
+            campo.value = (campo.value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/ç/g, 'c')
+                .replace(/Ç/g, 'C')
+                .toUpperCase();
             try { campo.setSelectionRange(inicio, fim); } catch (e) {}
         });
     }
